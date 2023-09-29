@@ -27,7 +27,8 @@
 *.pbxuser
 *.xcworkspace
 *.xcuserdatad
-xcuserdata/*
+xcuserdata/
+.xcuserstate
 
 # Visual Studio cache directory
 .vs/
