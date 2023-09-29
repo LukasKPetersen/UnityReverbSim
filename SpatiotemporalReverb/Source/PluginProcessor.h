@@ -10,10 +10,13 @@
 
 #include <JuceHeader.h>
 
+// setting up communication with Unity
+#include "/Applications/JUCE/modules/juce_audio_plugin_client/Unity/MyAudioProcessor.h"
+
 //==============================================================================
 /**
 */
-class SpatiotemporalReverbAudioProcessor  : public juce::AudioProcessor
+class SpatiotemporalReverbAudioProcessor  : public MyAudioProcessor
                             #if JucePlugin_Enable_ARA
                              , public juce::AudioProcessorARAExtension
                             #endif
@@ -57,6 +60,12 @@ public:
     void setStateInformation (const void* data, int sizeInBytes) override;
 
 private:
+    juce::AudioParameterFloat* gain;
+    juce::AudioParameterFloat* pan;
+    
+    float panSmoother;
+    float gainSmoother;
+    
     //==============================================================================
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (SpatiotemporalReverbAudioProcessor)
 };

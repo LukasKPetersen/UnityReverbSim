@@ -11,7 +11,7 @@
 //==============================================================================
 SpatiotemporalReverbAudioProcessor::SpatiotemporalReverbAudioProcessor()
 #ifndef JucePlugin_PreferredChannelConfigurations
-     : AudioProcessor (BusesProperties()
+     : MyAudioProcessor (BusesProperties()
                      #if ! JucePlugin_IsMidiEffect
                       #if ! JucePlugin_IsSynth
                        .withInput  ("Input",  juce::AudioChannelSet::stereo(), true)
@@ -21,6 +21,31 @@ SpatiotemporalReverbAudioProcessor::SpatiotemporalReverbAudioProcessor()
                        )
 #endif
 {
+    addParameter(gain = new juce::AudioParameterFloat(juce::ParameterID("gain", 1),
+                                                      "Gain",
+                                                      0.0f,
+                                                      1.0f,
+                                                      0.0f));
+    addParameter(pan = new juce::AudioParameterFloat(juce::ParameterID("pan", 1),
+                                                      "Pan",
+                                                      -1.0f,
+                                                      1.0f,
+                                                      0.0f));
+    
+    // we set panSmoother = 0.5 since JUCE variables are interpreted as values between 0 and 1 in Unity
+    panSmoother = 0.5f;
+    gainSmoother = 0.5f;
+    
+    applyAudioPositioning = [&] (float panInfo, float amplitude)
+    {
+        // instead of taking the direct value from Unity we apply smoothening to avoid audio artifacts
+        gainSmoother -= 0.02 * (gainSmoother - amplitude);
+        panSmoother -= 0.01 * (panSmoother - panInfo);
+
+        // set the value parameter based on the Unity input
+        getParameters()[0]->setValue(gainSmoother);
+        getParameters()[1]->setValue(panSmoother);
+    };
 }
 
 SpatiotemporalReverbAudioProcessor::~SpatiotemporalReverbAudioProcessor()
@@ -153,7 +178,22 @@ void SpatiotemporalReverbAudioProcessor::processBlock (juce::AudioBuffer<float>&
     {
         auto* channelData = buffer.getWritePointer (channel);
 
-        // ..do something to the data...
+        // calculate the pan value
+        float panValue = channel == 0 ? juce::jmap(pan->get(),
+                                                   -1.0f,
+                                                   1.0f,
+                                                   -1.0f,
+                                                   0.0f) * (-1) :
+                                        juce::jmap(pan->get(),
+                                                   -1.0f,
+                                                   1.0f,
+                                                   0.0f,
+                                                   1.0f);
+        
+        for (int sample = 0; sample < buffer.getNumSamples(); ++sample)
+        {
+            channelData[sample] *= panValue * gain->get(); // apply both panning and gain to each sample
+        }
     }
 }
 
@@ -185,6 +225,11 @@ void SpatiotemporalReverbAudioProcessor::setStateInformation (const void* data, 
 //==============================================================================
 // This creates new instances of the plugin..
 juce::AudioProcessor* JUCE_CALLTYPE createPluginFilter()
+{
+    return new SpatiotemporalReverbAudioProcessor();
+}
+
+MyAudioProcessor* JUCE_CALLTYPE createPluginFilterNEW()
 {
     return new SpatiotemporalReverbAudioProcessor();
 }
