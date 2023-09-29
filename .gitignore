@@ -28,7 +28,7 @@
 *.xcworkspace
 *.xcuserdatad
 xcuserdata/
-.xcuserstate
+*.xcuserstate
 
 # Visual Studio cache directory
 .vs/
