@@ -28,7 +28,7 @@
 *.xcworkspace
 *.xcuserdatad
 xcuserdata/
-*.xcuserstate
+
 
 # Visual Studio cache directory
 .vs/
@@ -73,8 +73,8 @@ sysinfo.txt
 *.app
 
 # JUCE builds
-.a
-.bundle
+*.a
+*.bundle
 
 # Crashlytics generated file
 crashlytics-build.properties
