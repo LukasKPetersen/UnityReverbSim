@@ -55,11 +55,15 @@ ExportedObj/
 # Unity3D generated file on crash reports
 sysinfo.txt
 
-# Builds
+# Unity builds
 *.apk
 *.aab
 *.unitypackage
 *.app
+
+# JUCE builds
+.a
+.bundle
 
 # Crashlytics generated file
 crashlytics-build.properties
@@ -75,3 +79,4 @@ crashlytics-build.properties
 .DS_Store
 .AppleDouble
 .LSOverride
+
