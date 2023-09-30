@@ -16,7 +16,7 @@
 //==============================================================================
 /**
 */
-class SpatiotemporalReverbAudioProcessor  : public MyAudioProcessor
+class SpatiotemporalReverbAudioProcessor : public MyAudioProcessor
                             #if JucePlugin_Enable_ARA
                              , public juce::AudioProcessorARAExtension
                             #endif

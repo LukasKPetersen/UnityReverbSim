@@ -205,7 +205,7 @@ bool SpatiotemporalReverbAudioProcessor::hasEditor() const
 
 juce::AudioProcessorEditor* SpatiotemporalReverbAudioProcessor::createEditor()
 {
-    return new juce::GenericAudioProcessorEditor(*this);
+    return new juce::GenericAudioProcessorEditor (*this);
 }
 
 //==============================================================================
