@@ -25,5 +25,5 @@ The setup between JUCE and Unity is mainly fleshed out in the JUCE project. Note
     ```
 14. Build your JUCE application and drag the `.bundle` file into `Assets/Plugins/` in your Unity project.
 15. Create a new Audio Mixer in Unity and add the JUCE plugin to the mixer.
-#### Xcode setup
-Make sure that you have enabled testability for debug builds in the Build Settings of your Xcode project.
+### Troubleshooting
+If you get the error: `EntryPointNotFoundException: <function_name()> assembly:<unknown assembly> type:<unknown type> member:(null)`, make sure that you have enabled testability for debug builds in the Build Settings of your Xcode project.
