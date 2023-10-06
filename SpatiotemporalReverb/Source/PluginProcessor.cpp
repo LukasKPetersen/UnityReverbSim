@@ -21,6 +21,7 @@ SpatiotemporalReverbAudioProcessor::SpatiotemporalReverbAudioProcessor()
                        )
 #endif
 {
+    // add localization parameters
     addParameter(gain = new juce::AudioParameterFloat(juce::ParameterID("gain", 1),
                                                       "Gain",
                                                       0.0f,
@@ -32,7 +33,34 @@ SpatiotemporalReverbAudioProcessor::SpatiotemporalReverbAudioProcessor()
                                                       1.0f,
                                                       0.0f));
     
-    // we set panSmoother = 0.5 since JUCE variables are interpreted as values between 0 and 1 in Unity
+    // add delay parameters
+    addParameter(delayTimeLeft = new juce::AudioParameterFloat(juce::ParameterID("delayTimeLeft", 1),
+                                                           "Delay Time Left",
+                                                           0.01f,
+                                                           1.99f,
+                                                           0.5f));
+    addParameter(delayTimeRight = new juce::AudioParameterFloat(juce::ParameterID("delayTimeRight", 1),
+                                                           "Delay Time Right",
+                                                           0.01f,
+                                                           1.99f,
+                                                           0.5f));
+    addParameter(wetLevel = new juce::AudioParameterFloat(juce::ParameterID("wetLevel", 1),
+                                                          "Wet level",
+                                                          0.0f,
+                                                          1.0f,
+                                                          0.8f));
+    addParameter(feedback = new juce::AudioParameterFloat(juce::ParameterID("feedback", 1),
+                                                          "Feedback",
+                                                          0.0f,
+                                                          0.99f,
+                                                          0.5f));
+    addParameter(lowPassFreq = new juce::AudioParameterFloat(juce::ParameterID("lowPassFreq", 1),
+                                                             "Lowpass Frequency",
+                                                             1e1,
+                                                             1e4,
+                                                             1e3));
+    
+    // we set panSmoother = 0.5 and not 0.0 since JUCE variables are interpreted as values between 0 and 1 in Unity
     panSmoother = 0.5f;
     gainSmoother = 0.5f;
     
@@ -119,6 +147,7 @@ void SpatiotemporalReverbAudioProcessor::prepareToPlay (double sampleRate, int s
 {
     // Use this method as the place to do any pre-playback
     // initialisation that you need..
+    delay.prepare({ sampleRate, (juce::uint32) samplesPerBlock, 2 });
 }
 
 void SpatiotemporalReverbAudioProcessor::releaseResources()
@@ -155,44 +184,52 @@ bool SpatiotemporalReverbAudioProcessor::isBusesLayoutSupported (const BusesLayo
 
 void SpatiotemporalReverbAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, juce::MidiBuffer& midiMessages)
 {
+    juce::ignoreUnused (midiMessages);
     juce::ScopedNoDenormals noDenormals;
     auto totalNumInputChannels  = getTotalNumInputChannels();
     auto totalNumOutputChannels = getTotalNumOutputChannels();
 
-    // In case we have more outputs than inputs, this code clears any output
-    // channels that didn't contain input data, (because these aren't
-    // guaranteed to be empty - they may contain garbage).
-    // This is here to avoid people getting screaming feedback
-    // when they first compile a plugin, but obviously you don't need to keep
-    // this code if your algorithm always overwrites all the output channels.
     for (auto i = totalNumInputChannels; i < totalNumOutputChannels; ++i)
         buffer.clear (i, 0, buffer.getNumSamples());
+    
+    // set delay parameters
+    delay.setFeedback(feedback->get());
+    delay.setWetLevel(wetLevel->get());
+    
 
-    // This is the place where you'd normally do the guts of your plugin's
-    // audio processing...
-    // Make sure to reset the state if your inner loop is processing
-    // the samples and the outer loop is handling the channels.
-    // Alternatively, you can process the samples with the channels
-    // interleaved by keeping the same state.
-    for (int channel = 0; channel < totalNumInputChannels; ++channel)
+//    juce::dsp::AudioBlock<float> block (buffer);
+//    juce::dsp::ProcessContextReplacing<float> context (block);
+//    delay.process (context);
+    
+    for (int ch = 0; ch < totalNumInputChannels; ++ch)
     {
-        auto* channelData = buffer.getWritePointer (channel);
-
-        // calculate the pan value
-        float panValue = channel == 0 ? juce::jmap(pan->get(),
-                                                   -1.0f,
-                                                   1.0f,
-                                                   -1.0f,
-                                                   0.0f) * (-1) :
-                                        juce::jmap(pan->get(),
-                                                   -1.0f,
-                                                   1.0f,
-                                                   0.0f,
-                                                   1.0f);
+        // set delay time
+        delay.setDelayTime(ch, ch == 0 ? delayTimeLeft->get() : delayTimeRight->get());
+        delay.setLowpassFreq(ch, lowPassFreq->get());
         
+        // we apply delay processing to the channel input signal
+        auto* channelReadData = buffer.getReadPointer (ch);
+        std::vector<float> delaySignal = delay.processChannelBuffer(ch, channelReadData, buffer.getNumSamples());
+        jassert (delaySignal.size() == buffer.getNumSamples());
+        
+        // calculate the pan value (channel-wise)
+        float panValue = ch == 0 ?  juce::jmap(pan->get(),
+                                               -1.0f,
+                                               1.0f,
+                                               -1.0f,
+                                               0.0f) * (-1) :
+                                    juce::jmap(pan->get(),
+                                               -1.0f,
+                                               1.0f,
+                                               0.0f,
+                                               1.0f);
+        
+        auto* channelWriteData = buffer.getWritePointer (ch);
+        
+        // apply processing to each sample in the buffer
         for (int sample = 0; sample < buffer.getNumSamples(); ++sample)
         {
-            channelData[sample] *= panValue * gain->get(); // apply both panning and gain to each sample
+            channelWriteData[sample] = delaySignal[sample] * panValue * gain->get();
         }
     }
 }

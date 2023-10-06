@@ -162,8 +162,10 @@
 		A43CD3EC8817486DDA54DFF0 /* include_juce_audio_plugin_client_ARA.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = include_juce_audio_plugin_client_ARA.cpp; path = ../../JuceLibraryCode/include_juce_audio_plugin_client_ARA.cpp; sourceTree = SOURCE_ROOT; };
 		A9060A9D42B728D5B2A32CA3 /* CoreAudio.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreAudio.framework; path = System/Library/Frameworks/CoreAudio.framework; sourceTree = SDKROOT; };
 		B7E97E5B8F08519F4A05D5BE /* include_juce_audio_processors.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; name = include_juce_audio_processors.mm; path = ../../JuceLibraryCode/include_juce_audio_processors.mm; sourceTree = SOURCE_ROOT; };
+		BB400BCB2AC9DBCC00FD41F5 /* DelayLine.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = DelayLine.h; path = ../../Source/DelayLine.h; sourceTree = "<group>"; };
+		BB400BCC2AC9DC9500FD41F5 /* Delay.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = Delay.h; path = ../../Source/Delay.h; sourceTree = "<group>"; };
 		C4E19784779DE0E3075BD056 /* Accelerate.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Accelerate.framework; path = System/Library/Frameworks/Accelerate.framework; sourceTree = SDKROOT; };
-		C87DA34B3F11E756FD37934B /* PluginProcessor.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = PluginProcessor.h; path = ../../Source/PluginProcessor.h; sourceTree = SOURCE_ROOT; };
+		C87DA34B3F11E756FD37934B /* PluginProcessor.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = PluginProcessor.h; path = ../../Source/PluginProcessor.h; sourceTree = "<group>"; };
 		C8D1BD16B934A6DB6E73E631 /* juce_audio_utils */ = {isa = PBXFileReference; lastKnownFileType = folder; name = juce_audio_utils; path = /Applications/JUCE/modules/juce_audio_utils; sourceTree = "<absolute>"; };
 		C96B1D8A25434966ADE2FCB8 /* include_juce_audio_plugin_client_Unity.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = include_juce_audio_plugin_client_Unity.cpp; path = ../../JuceLibraryCode/include_juce_audio_plugin_client_Unity.cpp; sourceTree = SOURCE_ROOT; };
 		D2737695D9CC2FADE6A437EA /* include_juce_graphics.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; name = include_juce_graphics.mm; path = ../../JuceLibraryCode/include_juce_graphics.mm; sourceTree = SOURCE_ROOT; };
@@ -267,6 +269,8 @@
 			children = (
 				9DFBCCBEBC3C9F59EA560544 /* PluginProcessor.cpp */,
 				C87DA34B3F11E756FD37934B /* PluginProcessor.h */,
+				BB400BCB2AC9DBCC00FD41F5 /* DelayLine.h */,
+				BB400BCC2AC9DC9500FD41F5 /* Delay.h */,
 			);
 			name = Source;
 			sourceTree = "<group>";

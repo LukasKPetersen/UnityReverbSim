@@ -13,6 +13,10 @@
 // setting up communication with Unity
 #include "/Applications/JUCE/modules/juce_audio_plugin_client/Unity/MyAudioProcessor.h"
 
+// custom reverb functionality
+#include "DelayLine.h"
+#include "Delay.h"
+
 //==============================================================================
 /**
 */
@@ -60,11 +64,21 @@ public:
     void setStateInformation (const void* data, int sizeInBytes) override;
 
 private:
+    // localization parameters
     juce::AudioParameterFloat* gain;
     juce::AudioParameterFloat* pan;
     
+    // delay parameters
+    juce::AudioParameterFloat* delayTimeLeft;
+    juce::AudioParameterFloat* delayTimeRight;
+    juce::AudioParameterFloat* wetLevel;
+    juce::AudioParameterFloat* feedback;
+    juce::AudioParameterFloat* lowPassFreq;
+    
     float panSmoother;
     float gainSmoother;
+    
+    Delay<float> delay;
     
     //==============================================================================
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (SpatiotemporalReverbAudioProcessor)
