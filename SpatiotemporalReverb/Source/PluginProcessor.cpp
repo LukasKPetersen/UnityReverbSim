@@ -49,6 +49,11 @@ SpatiotemporalReverbAudioProcessor::SpatiotemporalReverbAudioProcessor()
                                                           0.0f,
                                                           1.0f,
                                                           0.8f));
+    addParameter(dryLevel = new juce::AudioParameterFloat(juce::ParameterID("dryLevel", 1),
+                                                          "Dry level",
+                                                          0.0f,
+                                                          1.0f,
+                                                          1.0f));
     addParameter(feedback = new juce::AudioParameterFloat(juce::ParameterID("feedback", 1),
                                                           "Feedback",
                                                           0.0f,
@@ -57,7 +62,7 @@ SpatiotemporalReverbAudioProcessor::SpatiotemporalReverbAudioProcessor()
     addParameter(lowPassFreq = new juce::AudioParameterFloat(juce::ParameterID("lowPassFreq", 1),
                                                              "Lowpass Frequency",
                                                              1e1,
-                                                             1e4,
+                                                             4e4,
                                                              1e3));
     
     // we set panSmoother = 0.5 and not 0.0 since JUCE variables are interpreted as values between 0 and 1 in Unity
@@ -73,6 +78,11 @@ SpatiotemporalReverbAudioProcessor::SpatiotemporalReverbAudioProcessor()
         // set the value parameter based on the Unity input
         getParameters()[0]->setValue(gainSmoother);
         getParameters()[1]->setValue(panSmoother);
+    };
+    
+    applyDelay = [&] (float delayInSeconds)
+    {
+        // TODO: implement
     };
 }
 
@@ -195,6 +205,7 @@ void SpatiotemporalReverbAudioProcessor::processBlock (juce::AudioBuffer<float>&
     // set delay parameters
     delay.setFeedback(feedback->get());
     delay.setWetLevel(wetLevel->get());
+    delay.setDryLevel(dryLevel->get());
     
 
 //    juce::dsp::AudioBlock<float> block (buffer);

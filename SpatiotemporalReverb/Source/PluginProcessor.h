@@ -72,6 +72,7 @@ private:
     juce::AudioParameterFloat* delayTimeLeft;
     juce::AudioParameterFloat* delayTimeRight;
     juce::AudioParameterFloat* wetLevel;
+    juce::AudioParameterFloat* dryLevel;
     juce::AudioParameterFloat* feedback;
     juce::AudioParameterFloat* lowPassFreq;
     

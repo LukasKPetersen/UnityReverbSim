@@ -20,6 +20,7 @@ public:
         setDelayTime (0, 0.5f); // set left channel delay
         setDelayTime (1, 0.5f); // set right channel delay
         setWetLevel (0.8f);
+        setDryLevel (1.0f);
         setFeedback (0.5f); // I don't think I'll need feedback but it's easier to remove than add...
     }
     
@@ -78,45 +79,18 @@ public:
         wetLevel = newWetLevel;
     }
     
+    void setDryLevel (Type newDryLevel)
+    {
+        // ensure that the input value is valid, i.e. in range [0, 1]
+        jassert (newDryLevel >= Type (0) && newDryLevel <= Type (1));
+        dryLevel = newDryLevel;
+    }
+    
     void setFeedback (Type newFeedbackValue)
     {
         // ensure that the input value is valid, i.e. in range [0, 1]
         jassert (newFeedbackValue >= Type (0) && newFeedbackValue <= Type (1));
         feedback = newFeedbackValue;
-    }
-    
-    template <typename ProcessContext>
-    void process (const ProcessContext& context)
-    {
-        auto& inputBlock = context.getInputBlock();
-        auto& outputBlock = context.getOutputBlock();
-        //        auto numSamples = context.getNumSamples();
-        //        auto numChannels = context.getNumChannels();
-        auto numSamples = inputBlock.getNumSamples();
-        auto numChannels = inputBlock.getNumChannels();
-        
-        // ensure that the input is valid
-        //        jassert (inputBlock.getNumSamples() == numSamples);
-        //        jassert (inputBlock.getNumChannels() == numChannels);
-        
-        for (size_t ch = 0; ch < numChannels; ++ch)
-        {
-            auto* input = inputBlock.getChannelPointer (ch);
-            auto* output = outputBlock.getChannelPointer (ch);
-            auto& delayLine = delayLines[ch];
-            auto delayTime = delayTimes[ch] * sampleRate; // calculate the delay time in samples
-            auto& filter = filters[ch];
-            
-            for (size_t sample = 0; sample < numSamples; ++sample)
-            {
-                auto delayedSample = filter.processSample (delayLine.get(delayTime));
-                auto inputSample = input[sample];
-                auto delayLineInputSample = std::tanh(inputSample + feedback * delayedSample);
-                delayLine.push(delayLineInputSample);
-                auto outputSample = inputSample + wetLevel * delayedSample;
-                output[sample] = outputSample;
-            }
-        }
     }
     
     std::vector<float> processChannelBuffer (size_t channel, const Type* buffer, size_t numSamples)
@@ -126,7 +100,8 @@ public:
         auto& delayLine = delayLines[channel];
         auto delayTime = delayTimes[channel] * sampleRate; // calculate the delay time in samples
         auto& filter = filters[channel];
-         
+        
+        // TODO: make parallel with std::for_each(). Although, I see some potential issues with the delay line...
         for (size_t sample = 0; sample < numSamples; ++sample)
         {
             // read the delayed sample from the delay line
@@ -138,7 +113,7 @@ public:
             delayLine.push(delayLineInputSample);
             
             // calculate the output sample
-            auto outputSample = inputSample + wetLevel * delayedSample;
+            auto outputSample = dryLevel * inputSample + wetLevel * delayedSample;
             output[sample] = outputSample;
         }
         
@@ -150,6 +125,7 @@ private:
     Type maxDelayTime { 2.0f };
     Type sampleRate { Type (44.1e3) };
     Type wetLevel;
+    Type dryLevel;
     Type feedback;
     
     // delay lines

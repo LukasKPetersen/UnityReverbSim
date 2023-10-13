@@ -352,6 +352,7 @@
 "Assets/Plugins/InteractiveReverbScripts/AudioManager.cs"
 "Assets/Plugins/InteractiveReverbScripts/RayCastAudioSource.cs"
 "Assets/Plugins/InteractiveReverbScripts/RaycastResult.cs"
+"Assets/Plugins/InteractiveReverbScripts/Visualization.cs"
 -langversion:9.0
 
 /deterministic
