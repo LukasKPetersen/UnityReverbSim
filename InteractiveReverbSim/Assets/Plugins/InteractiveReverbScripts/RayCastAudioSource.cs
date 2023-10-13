@@ -104,6 +104,9 @@ public class RayCastAudioSource : MonoBehaviour
             case RaycastType.Random:
                 RandomSphericalPlacement(origin, amplitude);
                 break;
+            default:
+                RandomSphericalPlacement(origin, amplitude);
+                break;
         }
     }
 
@@ -164,10 +167,13 @@ public class RayCastAudioSource : MonoBehaviour
 
     private void CastRay(Vector3 origin, Vector3 direction, float amplitude, float distanceTravelled, int depth)
     {
+        // reduce ray range for every reflection 
+        // (TODO: find a ray range reduction factor that is based on distance traveled)
+        float maxRayRange = rayRange - (rayRange * 0.2f * depth);
+
         RaycastHit hit;
 
-        // reduce ray range for every reflection (TODO: find a ray range reduction factor that is based on distance traveled)
-        if (Physics.Raycast(origin, direction, out hit, rayRange-(rayRange * 0.2f * depth)))
+        if (Physics.Raycast(origin, direction, out hit, maxRayRange))
         {
             if (visualize) visualization.VisualizeRay(true, origin, hit.point, amplitude, depth);
 
@@ -176,7 +182,7 @@ public class RayCastAudioSource : MonoBehaviour
         }
         else
         {
-            if (visualize) visualization.VisualizeRay(false, origin, direction, amplitude, depth);
+            if (visualize) visualization.VisualizeRay(false, origin, direction * maxRayRange, amplitude, depth);
         }
     }
 
