@@ -10,15 +10,18 @@ public class RayCastAudioSource : MonoBehaviour
 
     public AudioManager audioManager;
 
-    // Rays
-    public int rayCount = 600;
-    public float rayRange = 10.0f;
+    public float sampleRate = 44100.0f;
+
+    // Ray parameters
+    public int rayCount = 300;
+    public float rayRange = 5.0f;
     public bool debug = true;
     public bool visualize = true;
+    public bool groupRays = true;
 
     // Type of raycast
     public enum RaycastType 
-    { 
+    {
         RegularEquidistributed, 
         RandomEquidistributed,
         Random 
@@ -31,8 +34,8 @@ public class RayCastAudioSource : MonoBehaviour
     // Array to store the amplitude values for each frequency band
     private float[] spectrumData;
 
+    // List to store the raycast results
     private List<RaycastResult> raycastResults = new List<RaycastResult>();
-    // private RaycastResult[] raycastResultsArray = new RaycastResult[rayCount];
 
     // Start is called before the first frame update
     void Start()
@@ -43,10 +46,10 @@ public class RayCastAudioSource : MonoBehaviour
 
 
         // Find and initialize the ImpactSphere GameObject
-        listener = GameObject.Find("Listener"); // Replace with the actual name of your sphere GameObject
+        listener = GameObject.Find("Listener");
         if (listener == null)
         {
-            Debug.LogError("Listener not found! Make sure it has the correct name.");
+            Debug.LogError("Listener not found! Make sure it has the correct name in the script.");
         }
 
         audioSource.volume = 1.0f;
@@ -55,7 +58,26 @@ public class RayCastAudioSource : MonoBehaviour
 
         // Initialize the spectrumData array with the number of bands
         spectrumData = new float[numBands];
+
+        // We call a repeating function that will send the raycast results to the audioManager
+        // This is done at the sample rate of the audio source
+        // InvokeRepeating("SendRaycastResults", 0.0f, 1.0f / sampleRate);
     }
+
+    // void SendRaycastResults()
+    // {
+        // // send the raycast results to the audioManager and on to the JUCE plugin
+        // if (audioManager != null && raycastResults.Count > 0)
+        // {
+        //     audioManager.ApplyRaycastResults(raycastResults);
+        //     // reset the raycast results every frame
+        //     raycastResults.Clear();
+        // }
+        // else
+        // {
+        //     (if debug) Debug.Log("AudioManager not selected!");
+        // }
+    // }
 
     // Update is called once per frame
     void Update()
@@ -64,35 +86,66 @@ public class RayCastAudioSource : MonoBehaviour
         float amplitude = 0.0f;
         if (audioSource.isPlaying)
         {
-            audioSource.GetSpectrumData(spectrumData, 0, FFTWindow.Rectangular); // or perhaps with FFTWindow.BlackmanHarris?
             // Calculate the average amplitude
+            audioSource.GetSpectrumData(spectrumData, 0, FFTWindow.Rectangular); // or perhaps with FFTWindow.BlackmanHarris?
             for (int i = 0; i < numBands; i++)
             {
                 amplitude += spectrumData[i];
             }
             amplitude /= numBands;
-        }
-        
-        CastSphericalRays(amplitude);
 
-        // send the raycast results to the audioManager and on to the JUCE plugin
-        if (audioManager != null)
-        {
-            audioManager.ApplyRaycastResults(raycastResults);
-            // reset the raycast results every frame
-            raycastResults = new List<RaycastResult>();
+            if (groupRays)
+            {
+                CastSphericalRays(amplitude);
+            
+                // send the raycast results to the audioManager and on to the JUCE plugin
+                if (audioManager != null)
+                {
+                    // we clear previous echoes from last frame
+                    if (AudioManager.ClearEchoes() == 0)
+                    {
+                        Debug.Log("Error clearing echoes!");
+                    }
+
+                    if (raycastResults.Count > 0)
+                    {
+                        audioManager.ApplyRaycastResults(raycastResults);
+                        // reset the raycast results every frame
+                        raycastResults.Clear();
+                    }
+                    else
+                    {
+                        if (debug) Debug.Log("No listener hits!");
+                    }
+                }
+                else
+                {
+                    if (debug) Debug.Log("AudioManager not selected!");
+                }
+            }
+            else
+            {
+                if (audioManager != null)
+                {
+                    // we clear previous echoes from last frame
+                    if (AudioManager.ClearEchoes() == 0)
+                    {
+                        Debug.Log("Error clearing echoes!");
+                    }
+
+                    CastSphericalRays(amplitude);
+                }
+            }
         }
-        else
-        {
-            Debug.Log("AudioManager not selected!");
-        }
+        // TODO: fix case in which audio source stopped playing. 
+        // I assume that this would case the echoes to continue playing, which is not what we want.
     }
     
     private void CastSphericalRays(float amplitude) 
     {
         Vector3 origin = transform.position;
 
-        // Choose whether to use the regular or random raycast algorithm
+        // Choose what raycast algorithm to use
         switch (raycastType)
         {
             case RaycastType.RegularEquidistributed:
@@ -167,9 +220,9 @@ public class RayCastAudioSource : MonoBehaviour
 
     private void CastRay(Vector3 origin, Vector3 direction, float amplitude, float distanceTravelled, int depth)
     {
-        // reduce ray range for every reflection 
         // (TODO: find a ray range reduction factor that is based on distance traveled)
-        float maxRayRange = rayRange - (rayRange * 0.2f * depth);
+        float maxRayRange = rayRange - distanceTravelled;
+        if (maxRayRange <= 0.0f) return;
 
         RaycastHit hit;
 
@@ -209,9 +262,23 @@ public class RayCastAudioSource : MonoBehaviour
                 distanceTravelled = distanceTravelled
             };
 
-            // package data to deliver to JUCE plugin
-            raycastResults.Add(result);
-
+            if (groupRays)
+            {
+                // package data to deliver to JUCE plugin
+                raycastResults.Add(result);
+            }
+            else
+            {
+                // alternative method: send each raycast result as soon as it is calculated
+                if (audioManager != null)
+                {
+                    audioManager.ApplyRaycastResult(result);
+                }
+                else
+                {
+                    Debug.Log("AudioManager not selected!");
+                }
+            }
             return true;
         }
         return false;
@@ -222,10 +289,10 @@ public class RayCastAudioSource : MonoBehaviour
         Vector3 newDirection = Vector3.Reflect(hit.point - transform.position, hit.normal);
         
         // reduce amplitude for every reflection
-        amplitude *= 0.7f; // TODO: make the reduction factor dependent on the reflection angle
+        // TODO: make the reduction factor dependent on the reflection angle
+        amplitude *= 0.7f;
 
         CastRay(hit.point, newDirection, amplitude, distanceTravelled, depth);
     }
-    
-    
+
 }

@@ -18578,10 +18578,12 @@ MonoBehaviour:
   audioSource: {fileID: 1720545046}
   listener: {fileID: 1735930975}
   audioManager: {fileID: 1735930980}
-  rayCount: 1
-  rayRange: 4
+  sampleRate: 44100
+  rayCount: 50
+  rayRange: 2
   debug: 1
   visualize: 1
+  groupRays: 1
   raycastType: 2
   numBands: 64
 --- !u!1 &1735930975
@@ -18695,6 +18697,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   medium: 0
+  delayScalingFactor: 1
 --- !u!43 &1749308893
 Mesh:
   m_ObjectHideFlags: 0
@@ -19207,7 +19210,7 @@ Mesh:
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_Name: pb_Mesh23390
+  m_Name: pb_Mesh23308
   serializedVersion: 10
   m_SubMeshes:
   - serializedVersion: 2

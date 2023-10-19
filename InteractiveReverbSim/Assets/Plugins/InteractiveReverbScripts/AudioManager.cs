@@ -7,6 +7,9 @@ public class AudioManager : MonoBehaviour
     public enum soundMedium { air, water, metal, wood, glass, concrete, carpet, grass, sand, snow };
     public soundMedium medium = soundMedium.air;
 
+    // scaling factor for delay times
+    public float delayScalingFactor = 1.0f;
+
     /* * * Declare the native functions using DllImport * * */
     // function for checking the connection to the plugin
     [DllImport("audioplugin_SpatiotemporalReverb", CallingConvention = CallingConvention.Cdecl)]
@@ -17,9 +20,13 @@ public class AudioManager : MonoBehaviour
     [DllImport("audioplugin_SpatiotemporalReverb", CallingConvention = CallingConvention.Cdecl)]
     public static extern int ApplyAudioPositioning(float panInfo, float amplitude);
 
+    // function for clearing previous echoes
+    [DllImport("audioplugin_SpatiotemporalReverb", CallingConvention = CallingConvention.Cdecl)]
+    public static extern int ClearEchoes();
+    
     // function for applying delay
     [DllImport("audioplugin_SpatiotemporalReverb", CallingConvention = CallingConvention.Cdecl)]
-    public static extern int ApplyDelay(float delayInSeconds);
+    public static extern int ApplyDelay(float delayInSeconds, float soundReduction);
     
     private void Awake()
     {
@@ -28,30 +35,36 @@ public class AudioManager : MonoBehaviour
 
     public void ApplyRaycastResult(RaycastResult raycastResult)
     {
-        // map the panInformation to a value between 0 and 1 (since JUCE parameters are always interpreted as values between 0 and 1 in Unity)
-        float panInfoJUCE = Map(raycastResult.panInformation, 180.0f, 0.0f, 0.0f, 1.0f);
+        // // map the panInformation to a value between 0 and 1 (since JUCE parameters are always interpreted as values between 0 and 1 in Unity)
+        // float panInfoJUCE = Map(raycastResult.panInformation, 180.0f, 0.0f, 0.0f, 1.0f);
 
-        // calculate the amplitude
-        float amplitudeJUCE = raycastResult.amplitude * 80.0f * Map(raycastResult.frontBackInformation, 180.0f, 0.0f, 0.3f, 1.0f);
+        // // calculate the amplitude
+        // float amplitudeJUCE = raycastResult.amplitude * 80.0f * Map(raycastResult.frontBackInformation, 180.0f, 0.0f, 0.3f, 1.0f);
         
-        if (ApplyAudioPositioning (panInfoJUCE, amplitudeJUCE) == 0) { Debug.Log("Error applying audio positioning!"); }
+        // if (ApplyAudioPositioning (panInfoJUCE, amplitudeJUCE) == 0) { Debug.Log("Error applying audio positioning!"); }
 
-        if (ApplyDelay(calculateDelay(raycastResult.distanceTravelled)) == 0)
+        if (ApplyDelay(calculateDelay(raycastResult.distanceTravelled), 
+                       raycastResult.amplitude / raycastResult.distanceTravelled) == 0)
         { 
             Debug.Log("Error applying delay!"); 
         } 
         else 
-        { 
+        {
             Debug.Log("Delay applied!"); 
         }
     }
 
     public void ApplyRaycastResults(List<RaycastResult> raycastResults)
     {
-        foreach (RaycastResult raycastResult in raycastResults)
+        foreach (RaycastResult result in raycastResults)
         {
-            ApplyRaycastResult(raycastResult);
+            // note: the amplitude is inversely proportional to the distance travelled
+            if (ApplyDelay(calculateDelay(result.distanceTravelled), result.amplitude / result.distanceTravelled) == 0)
+            {
+                Debug.Log("Error applying delay!");
+            }
         }
+        Debug.Log("Sent " + raycastResults.Count + " raycast results to the plugin!");
     }
 
     public void TestConnectionToJuce() 
@@ -73,7 +86,7 @@ public class AudioManager : MonoBehaviour
 
     public float calculateDelay(float distanceTravelled)
     {
-        return distanceTravelled / getSoundSpeed(medium);
+        return distanceTravelled / getSoundSpeed(medium) * delayScalingFactor;
     }
 
     // TODO: double check values

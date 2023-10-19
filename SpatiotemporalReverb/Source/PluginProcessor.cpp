@@ -61,8 +61,8 @@ SpatiotemporalReverbAudioProcessor::SpatiotemporalReverbAudioProcessor()
                                                           0.5f));
     addParameter(lowPassFreq = new juce::AudioParameterFloat(juce::ParameterID("lowPassFreq", 1),
                                                              "Lowpass Frequency",
-                                                             1e1,
-                                                             4e4,
+                                                             2e2,
+                                                             4e3,
                                                              1e3));
     
     // we set panSmoother = 0.5 and not 0.0 since JUCE variables are interpreted as values between 0 and 1 in Unity
@@ -80,9 +80,16 @@ SpatiotemporalReverbAudioProcessor::SpatiotemporalReverbAudioProcessor()
         getParameters()[1]->setValue(panSmoother);
     };
     
-    applyDelay = [&] (float delayInSeconds)
+    clearEchoes = [&] ()
     {
-        // TODO: implement
+        delay.clearEchoes();
+    };
+    
+    applyDelay = [&] (float delayInSeconds, float soundReduction)
+    {
+        // for now, we apply the echoes as if we were working in mono
+        delay.addEcho(delayInSeconds, soundReduction, 0);
+        delay.addEcho(delayInSeconds, soundReduction, 1);
     };
 }
 
@@ -207,11 +214,6 @@ void SpatiotemporalReverbAudioProcessor::processBlock (juce::AudioBuffer<float>&
     delay.setWetLevel(wetLevel->get());
     delay.setDryLevel(dryLevel->get());
     
-
-//    juce::dsp::AudioBlock<float> block (buffer);
-//    juce::dsp::ProcessContextReplacing<float> context (block);
-//    delay.process (context);
-    
     for (int ch = 0; ch < totalNumInputChannels; ++ch)
     {
         // set delay time
@@ -224,16 +226,8 @@ void SpatiotemporalReverbAudioProcessor::processBlock (juce::AudioBuffer<float>&
         jassert (delaySignal.size() == buffer.getNumSamples());
         
         // calculate the pan value (channel-wise)
-        float panValue = ch == 0 ?  juce::jmap(pan->get(),
-                                               -1.0f,
-                                               1.0f,
-                                               -1.0f,
-                                               0.0f) * (-1) :
-                                    juce::jmap(pan->get(),
-                                               -1.0f,
-                                               1.0f,
-                                               0.0f,
-                                               1.0f);
+        float panValue = ch == 0 ?  juce::jmap(pan->get(), -1.0f, 1.0f, -1.0f, 0.0f) * (-1) :
+                                    juce::jmap(pan->get(), -1.0f, 1.0f, 0.0f, 1.0f);
         
         auto* channelWriteData = buffer.getWritePointer (ch);
         
@@ -243,6 +237,9 @@ void SpatiotemporalReverbAudioProcessor::processBlock (juce::AudioBuffer<float>&
             channelWriteData[sample] = delaySignal[sample] * panValue * gain->get();
         }
     }
+    
+    // apply diffusion
+    /* ... */
 }
 
 //==============================================================================
