@@ -162,6 +162,8 @@
 		A43CD3EC8817486DDA54DFF0 /* include_juce_audio_plugin_client_ARA.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = include_juce_audio_plugin_client_ARA.cpp; path = ../../JuceLibraryCode/include_juce_audio_plugin_client_ARA.cpp; sourceTree = SOURCE_ROOT; };
 		A9060A9D42B728D5B2A32CA3 /* CoreAudio.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreAudio.framework; path = System/Library/Frameworks/CoreAudio.framework; sourceTree = SDKROOT; };
 		B7E97E5B8F08519F4A05D5BE /* include_juce_audio_processors.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; name = include_juce_audio_processors.mm; path = ../../JuceLibraryCode/include_juce_audio_processors.mm; sourceTree = SOURCE_ROOT; };
+		BB2515812AE290CB00B8EB4A /* Matrix.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = Matrix.h; path = ../../Source/Matrix.h; sourceTree = "<group>"; };
+		BB2515822AE2AA5C00B8EB4A /* DiffusionStep.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = DiffusionStep.h; path = ../../Source/DiffusionStep.h; sourceTree = "<group>"; };
 		BB390F062AE01F3A004685A1 /* Diffusion.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = Diffusion.h; path = ../../Source/Diffusion.h; sourceTree = "<group>"; };
 		BB400BCB2AC9DBCC00FD41F5 /* DelayLine.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = DelayLine.h; path = ../../Source/DelayLine.h; sourceTree = "<group>"; };
 		BB400BCC2AC9DC9500FD41F5 /* Delay.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = Delay.h; path = ../../Source/Delay.h; sourceTree = "<group>"; };
@@ -273,6 +275,8 @@
 				BB400BCB2AC9DBCC00FD41F5 /* DelayLine.h */,
 				BB400BCC2AC9DC9500FD41F5 /* Delay.h */,
 				BB390F062AE01F3A004685A1 /* Diffusion.h */,
+				BB2515812AE290CB00B8EB4A /* Matrix.h */,
+				BB2515822AE2AA5C00B8EB4A /* DiffusionStep.h */,
 			);
 			name = Source;
 			sourceTree = "<group>";

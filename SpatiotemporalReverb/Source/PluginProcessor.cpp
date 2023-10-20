@@ -26,7 +26,7 @@ SpatiotemporalReverbAudioProcessor::SpatiotemporalReverbAudioProcessor()
                                                       "Gain",
                                                       0.0f,
                                                       1.0f,
-                                                      0.0f));
+                                                      0.5f));
     addParameter(pan = new juce::AudioParameterFloat(juce::ParameterID("pan", 1),
                                                       "Pan",
                                                       -1.0f,
@@ -58,7 +58,7 @@ SpatiotemporalReverbAudioProcessor::SpatiotemporalReverbAudioProcessor()
                                                           "Feedback",
                                                           0.0f,
                                                           0.99f,
-                                                          0.5f));
+                                                          0.0f));
     addParameter(lowPassFreq = new juce::AudioParameterFloat(juce::ParameterID("lowPassFreq", 1),
                                                              "Lowpass Frequency",
                                                              2e2,
@@ -237,9 +237,6 @@ void SpatiotemporalReverbAudioProcessor::processBlock (juce::AudioBuffer<float>&
             channelWriteData[sample] = delaySignal[sample] * panValue * gain->get();
         }
     }
-    
-    // apply diffusion
-    /* ... */
 }
 
 //==============================================================================

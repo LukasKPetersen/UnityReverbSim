@@ -8,6 +8,7 @@
 #pragma once
 #include <JuceHeader.h>
 #include "DelayLine.h"
+#include "Diffusion.h"
 #include <memory>
 
 template <typename Type, size_t maxNumChannels = 2>
@@ -25,7 +26,7 @@ public:
         
         // set frequency cutoff for left, and right channel
         setLowpassFreq(0, 2e3);
-        setLowpassFreq(1, 2e3);
+        setLowpassFreq(1, 2e3);        
     }
     
     void prepare (const juce::dsp::ProcessSpec& spec)
@@ -43,6 +44,8 @@ public:
             filter.prepare (spec);
             filter.coefficients = filterCoefs;
         }
+        
+        diffusion.prepare(sampleRate);
     }
     
     void setLowpassFreq (size_t channel, float freq)
@@ -98,9 +101,9 @@ public:
         feedback = newFeedbackValue;
     }
     
-    std::vector<float> processChannelBuffer (size_t channel, const Type* buffer, size_t numSamples)
+    std::vector<Type> processChannelBuffer (size_t channel, const Type* buffer, size_t numSamples)
     {
-        std::vector<float> output(numSamples);
+        std::vector<Type> output(numSamples);
         
         auto& delayLine = delayLines[channel];
         auto& filter = filters[channel];
@@ -109,33 +112,18 @@ public:
         for (size_t sample = 0; sample < numSamples; ++sample)
         {
             auto inputSample = buffer[sample];
-
-            // first we fill the delaylines with all the individual echoes
-            for (Echo echo : echoes[channel])
-            {
-                // we apply diffusion
-                for (int i = 0; i < diffusionAmount; ++i)
-                {
-                    float delayInSamples = echo.delayInSeconds * sampleRate;
-                    
-                    // add diffusion within the interval [-5ms; 5ms]
-                    float diffusion = random.nextFloat() * diffusionSampleRange;
-                    diffusion *= delayInSamples > diffusion && random.nextBool() ? 1 : -1;
-                    // flip polarity randomly
-                    int polarity = random.nextBool() ? 1 : -1;
-                    
-                    // add diffused echo to delay line
-                    delayLine.addSample((size_t) (delayInSamples + diffusion),
-                                        inputSample * echo.soundReduction * polarity);
-                }
-            }
             
+            Type diffusedSample = diffusion.processSample(inputSample);
+                        
             // get the delayedSignal from the delay line and apply filter
             // TODO: make a seperate method for applying filter
-            auto delayedSample = filter.processSample (delayLine.getNextSample());
-                        
+            auto nextSample = filter.processSample (delayLine.getNextSample());
+            
+            // add diffused echo to delay line
+            delayLine.addSample(delayTimes[channel], diffusedSample + feedback * nextSample);
+            
             // calculate the output sample
-            auto outputSample = dryLevel * inputSample + wetLevel * delayedSample;
+            auto outputSample = dryLevel * inputSample + wetLevel * nextSample;
             output[sample] = outputSample;
         }
         
@@ -161,14 +149,16 @@ private:
     Type wetLevel;
     Type dryLevel;
     Type feedback;
-    size_t diffusionAmount { 8 };
-    Type diffusionSampleRange { 0.005f * sampleRate };
+//    size_t diffusionAmount { 8 };
+//    Type diffusionSampleRange { 0.005f * sampleRate };
     
     juce::Random random;
     
     // delay lines
     std::array<DelayLine<Type>, maxNumChannels> delayLines;
     std::array<Type,            maxNumChannels> delayTimes;
+    
+    Diffusion<float, 8, 8> diffusion;
     
     // we define the data structure that holds each individual echo
     struct Echo

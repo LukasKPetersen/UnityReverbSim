@@ -7,87 +7,45 @@
 
 #pragma once
 #include <JuceHeader.h>
+#include "DiffusionStep.h"
 
 // based on ADC 21' talk: Let's Write a Reverb - Geraint Luff
-
 template<typename Type, size_t numChannels = 8, size_t stepCount = 4>
 class Diffusion
 {
 public:
-    Diffusion(float totalDiffusionTime)
+    Diffusion()
     {
-        setDiffusionStepLengths(totalDiffusionTime);
     }
     
-    std::vector<Type> process (std::vector<Type> input)
+    Type processSample (Type input)
     {
-        for (auto& step : diffusionSteps)
-            input = step.process (input);
+        // split the input signal into the diffusion channels
+        std::array<Type, numChannels> splitSignal;
+        splitSignal.fill(input);
         
-        return input;
+        for (auto& step : diffusionSteps)
+            splitSignal = step.process (splitSignal);
+        
+        // combine the split signal to a single channel
+        Type result = std::tanh (std::accumulate (std::begin(splitSignal), std::end(splitSignal), 0.0f));
+        
+        return result;
     }
     
-    void configure (double sampleRate)
-    {
-        for (auto& step : steps)
-            step.configure (sampleRate);
-    }
-    
-    void setDiffusionStepLengths (float totalDiffusionTime)
+    void prepare (double sampleRate)
     {
         for (auto& step : diffusionSteps)
-            step.delayMsRange = totalDiffusionTime / stepCount;
+            step.prepare (sampleRate);
+    }
+    
+    void setDiffusionStepLengths (float totalDiffusionTimeInSeconds)
+    {
+        for (auto& step : diffusionSteps)
+            step.delayRangeInSeconds = totalDiffusionTimeInSeconds / stepCount;
     }
     
 private:
-    std::array<DiffusionStep<Type>, stepCount> diffusionSteps;
-
-    
-    template<typename Type, size_t numChannels = 8>
-    struct DiffusionStep
-    {
-        using Array = std::array<double, numChannels>;
-        double delayMsRange = 50;
-        
-        std::array<int, numChannels> delaySamples;
-        std::array<Delay, numChannels> delays; // delay lines
-        std::array<bool, numChannels> flipPolarity;
-        
-        void configure (double sampleRate)
-        {
-            double delaySamplesRange = delayMsRange * 0.001 * sampleRate;
-            for (int c = 0; c < numChannels; ++c)
-            {
-                double rangeLow = delaySamplesRange * c / numChannels;
-                double rangeHigh = delaySamplesRange * (c + 1) / numChannels;
-                delaySamples[c] = randomInRange (rangeLow, rangeHigh);
-                delays[c].resize (delaySamples[c] + 1);
-                delays[c].reset();
-                flipPolarity[c] = rand() % 2;
-            }
-        }
-        
-        Array process (Array input)
-        {
-            // Delay
-            Array delayed;
-            for (int c = 0; c < numChannels; ++c)
-            {
-                delays[c].write(input[c]);
-                delayed[c] = delays[c].read(delaySamples[c]);
-            }
-            
-            // Flip some polarities
-            for (int c = 0; c < numChannels; ++c)
-            {
-                if (flipPolarity[c]) delayed[c] *= -1;
-            }
-            
-            // Mix with a Hadamard matrix
-            Array mixed = delayed;
-            Hadamard<double, numChannels>::inPlace(mixed.data());
-            
-            return mixed;
-        }
-    };
+    // we declare an array of diffusion steps that functions as a diffusion chain
+    std::array<DiffusionStep<Type, numChannels>, stepCount> diffusionSteps;
 };
