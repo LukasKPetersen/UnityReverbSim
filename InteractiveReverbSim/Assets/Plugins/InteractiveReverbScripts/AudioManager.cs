@@ -18,7 +18,7 @@ public class AudioManager : MonoBehaviour
 
     // function for applying audio positioning
     [DllImport("audioplugin_SpatiotemporalReverb", CallingConvention = CallingConvention.Cdecl)]
-    public static extern int ApplyAudioPositioning(float panInfo, float distance);
+    public static extern int ApplyAudioPositioning(float panInfo, float frontBackInfo, float distance);
 
     // function for clearing previous echoes
     [DllImport("audioplugin_SpatiotemporalReverb", CallingConvention = CallingConvention.Cdecl)]
@@ -36,9 +36,14 @@ public class AudioManager : MonoBehaviour
     public void ApplyRaycastResult(RaycastResult raycastResult)
     {
         // map the panInformation to a value between 0 and 1 (since JUCE parameters are always interpreted as values between 0 and 1 in Unity)
+        // TODO: Why was this again?????
         float panInfoJUCE = Map(raycastResult.panInformation, 180.0f, 0.0f, 0.0f, 1.0f);
 
-        if (ApplyAudioPositioning (panInfoJUCE, raycastResult.distanceTravelled / 5) == 0) { Debug.Log("Error applying audio positioning!"); }
+        float frontBackInfo = Map(raycastResult.frontBackInformation, 180.0f, 0.0f, 0.0f, 1.0f);
+
+        Debug.Log("panInfoJUCE: " + panInfoJUCE + ", frontBackInfo: " + frontBackInfo + ", distance: " + raycastResult.distanceTravelled + ", result.frontback: " + raycastResult.frontBackInformation);
+
+        if (ApplyAudioPositioning (panInfoJUCE, raycastResult.frontBackInformation, raycastResult.distanceTravelled /* / 5 */) == 0) { Debug.Log("Error applying audio positioning!"); }
 
         // if (ApplyDelay(calculateDelay(raycastResult.distanceTravelled), 
         //                raycastResult.amplitude / raycastResult.distanceTravelled) == 0)
@@ -50,11 +55,6 @@ public class AudioManager : MonoBehaviour
         //     Debug.Log("Delay applied!"); 
         // }
     }
-
-    // public void CalculateFilterCoefficients(MaterialAudioAttributes materialAudioAttributes)
-    // {
-    //     float frontBackInformation = Map(raycastResult.frontBackInformation, 180.0f, 0.0f, 0.4f, 1.0f)
-    // }
 
     public void ApplyRaycastResults(List<RaycastResult> raycastResults)
     {

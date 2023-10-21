@@ -33,7 +33,19 @@ SpatiotemporalReverbAudioProcessor::SpatiotemporalReverbAudioProcessor()
                                                       1.0f,
                                                       0.0f));
     
+    // add diffusion parameters
+    addParameter(diffusionLevel = new juce::AudioParameterFloat(juce::ParameterID("diffusionLevel", 1),
+                                                                "Diffusion Level",
+                                                                0.0f,
+                                                                1.0f,
+                                                                0.5f));
+    
     // add delay parameters
+    addParameter(delayLevel = new juce::AudioParameterFloat(juce::ParameterID("delayLevel", 1),
+                                                                 "Delay Level",
+                                                                 0.0f,
+                                                                 1.0f,
+                                                                 0.5f));
     addParameter(delayTimeLeft = new juce::AudioParameterFloat(juce::ParameterID("delayTimeLeft", 1),
                                                            "Delay Time Left",
                                                            0.01f,
@@ -44,6 +56,15 @@ SpatiotemporalReverbAudioProcessor::SpatiotemporalReverbAudioProcessor()
                                                            0.01f,
                                                            1.99f,
                                                            0.5f));
+    
+    // add filter parameters
+    addParameter(filterLevel = new juce::AudioParameterFloat(juce::ParameterID("filterLevel", 1),
+                                                             "Filter Level",
+                                                             0.0f,
+                                                             1.0f,
+                                                             0.5f));
+    
+    // add fx parameters
     addParameter(wetLevel = new juce::AudioParameterFloat(juce::ParameterID("wetLevel", 1),
                                                           "Wet level",
                                                           0.0f,
@@ -69,7 +90,7 @@ SpatiotemporalReverbAudioProcessor::SpatiotemporalReverbAudioProcessor()
     panSmoother = 0.5f;
     gainSmoother = 1.0f;
     
-    applyAudioPositioning = [&] (float panInfo, float distance)
+    applyAudioPositioning = [&] (float panInfo, float frontBackInfo, float distance)
     {
         jassert(distance != 0.0f);
         
@@ -80,6 +101,11 @@ SpatiotemporalReverbAudioProcessor::SpatiotemporalReverbAudioProcessor()
         // set the value parameter based on the Unity input
         getParameters()[0]->setValue(gainSmoother);
         getParameters()[1]->setValue(panSmoother);
+        
+        diffusion.setTotalDiffusionTime(distance / 343.0f * 4.0f); // the last factor is just applyied for audiable effect
+        
+        filter.setHeadShadowFilter(panInfo, frontBackInfo);
+        filter.setDistanceFilter(distance);
     };
     
     clearEchoes = [&] ()
@@ -164,9 +190,9 @@ void SpatiotemporalReverbAudioProcessor::changeProgramName (int index, const juc
 //==============================================================================
 void SpatiotemporalReverbAudioProcessor::prepareToPlay (double sampleRate, int samplesPerBlock)
 {
-    // Use this method as the place to do any pre-playback
-    // initialisation that you need..
     delay.prepare({ sampleRate, (juce::uint32) samplesPerBlock, 2 });
+    diffusion.prepare(sampleRate);
+    filter.prepare({ sampleRate, (juce::uint32) samplesPerBlock, 2 });
 }
 
 void SpatiotemporalReverbAudioProcessor::releaseResources()
@@ -211,10 +237,18 @@ void SpatiotemporalReverbAudioProcessor::processBlock (juce::AudioBuffer<float>&
     for (auto i = totalNumInputChannels; i < totalNumOutputChannels; ++i)
         buffer.clear (i, 0, buffer.getNumSamples());
     
+    // set diffusion parameters
+    diffusion.setWetLevel(wetLevel->get());
+    diffusion.setDryLevel(dryLevel->get());
+    
     // set delay parameters
     delay.setFeedback(feedback->get());
     delay.setWetLevel(wetLevel->get());
     delay.setDryLevel(dryLevel->get());
+    
+    // set filter parameters
+    filter.setWetLevel(wetLevel->get());
+    filter.setDryLevel(dryLevel->get());
     
     for (int ch = 0; ch < totalNumInputChannels; ++ch)
     {
@@ -222,10 +256,21 @@ void SpatiotemporalReverbAudioProcessor::processBlock (juce::AudioBuffer<float>&
         delay.setDelayTime(ch, ch == 0 ? delayTimeLeft->get() : delayTimeRight->get());
         delay.setLowpassFreq(ch, lowPassFreq->get());
         
-        // we apply delay processing to the channel input signal
         auto* channelReadData = buffer.getReadPointer (ch);
-        std::vector<float> delaySignal = delay.processChannelBuffer(ch, channelReadData, buffer.getNumSamples());
-        jassert (delaySignal.size() == buffer.getNumSamples());
+        
+        // we apply diffusion to the channel input signal
+//        std::vector<float> processedSignal = diffusion.processChannelBuffer(ch, channelReadData, buffer.getNumSamples());
+        std::vector<float> diffusedSignal = diffusion.processChannelBuffer(ch, channelReadData, buffer.getNumSamples()); // just for debugging purposes
+        jassert (diffusedSignal.size() == buffer.getNumSamples());
+        
+        // we apply delay processing to the channel input signal
+//        processedSignal = delay.processChannelBuffer(ch, channelReadData, buffer.getNumSamples());
+        std::vector<float> delayedSignal = delay.processChannelBuffer(ch, channelReadData, buffer.getNumSamples()); // just for debugging purposes
+        jassert (delayedSignal.size() == buffer.getNumSamples());
+        
+        // we apply filtering to the channel input signal
+        std::vector<float> filteredSignal = filter.processChannelBuffer(ch, channelReadData, buffer.getNumSamples());
+        jassert (filteredSignal.size() == buffer.getNumSamples());
         
         // calculate the pan value (channel-wise)
         float panValue = ch == 0 ?  juce::jmap(pan->get(), -1.0f, 1.0f, -1.0f, 0.0f) * (-1) :
@@ -233,10 +278,10 @@ void SpatiotemporalReverbAudioProcessor::processBlock (juce::AudioBuffer<float>&
         
         auto* channelWriteData = buffer.getWritePointer (ch);
         
-        // apply processing to each sample in the buffer
+        // set each sample of the output buffer
         for (int sample = 0; sample < buffer.getNumSamples(); ++sample)
         {
-            channelWriteData[sample] = delaySignal[sample] * panValue * gain->get();
+            channelWriteData[sample] = std::tanh (diffusionLevel->get() * diffusedSignal[sample] + delayLevel->get() * delayedSignal[sample] + filterLevel->get() * filteredSignal[sample]) * panValue * gain->get();
         }
     }
 }

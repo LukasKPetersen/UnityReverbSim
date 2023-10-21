@@ -47,8 +47,8 @@ class SourceToListenerLink : MonoBehaviour
                 Vector3 impactPoint = hit.point;
 
                 // calculate the front-back angle
-                // Vector3 referenceDirection = listener.transform.forward;
-                // float frontBackAngle = Vector3.Angle(impactPoint - listener.transform.position, referenceDirection);
+                Vector3 referenceDirection = listener.transform.forward;
+                frontBackAngle = Vector3.Angle(impactPoint - listener.transform.position, referenceDirection);
 
                 // calculate the left-right angle
                 Vector3 leftRightDirection = listener.transform.right;

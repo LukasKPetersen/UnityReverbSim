@@ -8,7 +8,7 @@
 #pragma once
 #include <JuceHeader.h>
 #include "DelayLine.h"
-#include "Diffusion.h"
+#include "Filter.h"
 #include <memory>
 
 template <typename Type, size_t maxNumChannels = 2>
@@ -43,9 +43,7 @@ public:
         {
             filter.prepare (spec);
             filter.coefficients = filterCoefs;
-        }
-        
-        diffusion.prepare(sampleRate);
+        }        
     }
     
     void setLowpassFreq (size_t channel, float freq)
@@ -112,18 +110,16 @@ public:
         for (size_t sample = 0; sample < numSamples; ++sample)
         {
             auto inputSample = buffer[sample];
-            
-            Type diffusedSample = diffusion.processSample(inputSample);
-                        
+                                    
             // get the delayedSignal from the delay line and apply filter
             // TODO: make a seperate method for applying filter
-            auto nextSample = filter.processSample (delayLine.getNextSample());
+            auto delayedSample = filter.processSample (delayLine.get(delayTimes[channel]));
             
             // add diffused echo to delay line
-            delayLine.addSample(delayTimes[channel], diffusedSample + feedback * nextSample);
+            delayLine.push(inputSample + feedback * delayedSample);
             
             // calculate the output sample
-            auto outputSample = dryLevel * inputSample + wetLevel * nextSample;
+            auto outputSample = dryLevel * inputSample + wetLevel * delayedSample;
             output[sample] = outputSample;
         }
         
@@ -149,17 +145,13 @@ private:
     Type wetLevel;
     Type dryLevel;
     Type feedback;
-//    size_t diffusionAmount { 8 };
-//    Type diffusionSampleRange { 0.005f * sampleRate };
     
     juce::Random random;
     
     // delay lines
     std::array<DelayLine<Type>, maxNumChannels> delayLines;
     std::array<Type,            maxNumChannels> delayTimes;
-    
-    Diffusion<float, 8, 8> diffusion;
-    
+        
     // we define the data structure that holds each individual echo
     struct Echo
     {

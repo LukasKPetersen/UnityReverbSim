@@ -19,17 +19,15 @@ public:
     {
     }
     
-    void prepare (double sampleRate)
+    void prepare (juce::Range<int> delaySamplesRange)
     {
-        double delaySamplesRange = delayRangeInSeconds * sampleRate;
-        
         // we set up each of the diffusion-step channels
         for (int ch = 0; ch < numChannels; ++ch)
         {
-            // we set the delay range for the channel
-            juce::Range<int> range((delaySamplesRange / numChannels) * ch, (delaySamplesRange / numChannels) * (ch + 1));
+            // we set the delay range for the specific channel
+            juce::Range<int> range((delaySamplesRange.getLength() / numChannels) * ch, (delaySamplesRange.getLength() / numChannels) * (ch + 1));
             // we choose a random delay within the range
-            delayInSamples[ch] = random.nextInt(range);
+            delayInSamples[ch] = random.nextInt(delaySamplesRange) + delaySamplesRange.getStart();
             
             // we set up the delay line
             delayLines[ch].resize (delayInSamples[ch] + 1);

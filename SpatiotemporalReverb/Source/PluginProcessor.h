@@ -14,7 +14,7 @@
 #include "/Applications/JUCE/modules/juce_audio_plugin_client/Unity/MyAudioProcessor.h"
 
 // custom reverb functionality
-#include "DelayLine.h"
+#include "Diffusion.h"
 #include "Delay.h"
 
 //==============================================================================
@@ -68,9 +68,18 @@ private:
     juce::AudioParameterFloat* gain;
     juce::AudioParameterFloat* pan;
     
+    // diffusion parameters
+    juce::AudioParameterFloat* diffusionLevel;
+    
     // delay parameters
+    juce::AudioParameterFloat* delayLevel;
     juce::AudioParameterFloat* delayTimeLeft;
     juce::AudioParameterFloat* delayTimeRight;
+    
+    // filter parameters
+    juce::AudioParameterFloat* filterLevel;
+    
+    // fx parameters
     juce::AudioParameterFloat* wetLevel;
     juce::AudioParameterFloat* dryLevel;
     juce::AudioParameterFloat* feedback;
@@ -79,7 +88,9 @@ private:
     float panSmoother;
     float gainSmoother;
     
+    Diffusion<float, 8, 4> diffusion;
     Delay<float> delay;
+    Filter<float, 2> filter;
     
     //==============================================================================
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (SpatiotemporalReverbAudioProcessor)
