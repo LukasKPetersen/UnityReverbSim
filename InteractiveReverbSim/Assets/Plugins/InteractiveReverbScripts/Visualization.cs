@@ -21,6 +21,6 @@ public class Visualization
     
     private Color GetRayColor(int depth, float amplitude)
     {
-        return new Color((float)(depth%10) * 0.1f, (float)(depth%20) * 0.05f, (float)(depth%100) * 0.01f, amplitude);
+        return new Color((float)(depth%10) * 0.1f, (float)(depth%20) * 0.05f, (float)(depth%100) * 0.01f, amplitude * 10.0f);
     }
 }

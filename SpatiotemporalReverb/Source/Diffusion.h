@@ -35,6 +35,9 @@ public:
     
     void prepare (double sampleRate)
     {
+        // set
+//        juce::Range<float> range ();
+        
         for (auto& step : diffusionSteps)
             step.prepare (sampleRate);
     }

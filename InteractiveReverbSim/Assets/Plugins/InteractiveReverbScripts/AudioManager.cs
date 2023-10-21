@@ -18,7 +18,7 @@ public class AudioManager : MonoBehaviour
 
     // function for applying audio positioning
     [DllImport("audioplugin_SpatiotemporalReverb", CallingConvention = CallingConvention.Cdecl)]
-    public static extern int ApplyAudioPositioning(float panInfo, float amplitude);
+    public static extern int ApplyAudioPositioning(float panInfo, float distance);
 
     // function for clearing previous echoes
     [DllImport("audioplugin_SpatiotemporalReverb", CallingConvention = CallingConvention.Cdecl)]
@@ -35,27 +35,31 @@ public class AudioManager : MonoBehaviour
 
     public void ApplyRaycastResult(RaycastResult raycastResult)
     {
-        // // map the panInformation to a value between 0 and 1 (since JUCE parameters are always interpreted as values between 0 and 1 in Unity)
-        // float panInfoJUCE = Map(raycastResult.panInformation, 180.0f, 0.0f, 0.0f, 1.0f);
+        // map the panInformation to a value between 0 and 1 (since JUCE parameters are always interpreted as values between 0 and 1 in Unity)
+        float panInfoJUCE = Map(raycastResult.panInformation, 180.0f, 0.0f, 0.0f, 1.0f);
 
-        // // calculate the amplitude
-        // float amplitudeJUCE = raycastResult.amplitude * 80.0f * Map(raycastResult.frontBackInformation, 180.0f, 0.0f, 0.3f, 1.0f);
-        
-        // if (ApplyAudioPositioning (panInfoJUCE, amplitudeJUCE) == 0) { Debug.Log("Error applying audio positioning!"); }
+        if (ApplyAudioPositioning (panInfoJUCE, raycastResult.distanceTravelled / 5) == 0) { Debug.Log("Error applying audio positioning!"); }
 
-        if (ApplyDelay(calculateDelay(raycastResult.distanceTravelled), 
-                       raycastResult.amplitude / raycastResult.distanceTravelled) == 0)
-        { 
-            Debug.Log("Error applying delay!"); 
-        } 
-        else 
-        {
-            Debug.Log("Delay applied!"); 
-        }
+        // if (ApplyDelay(calculateDelay(raycastResult.distanceTravelled), 
+        //                raycastResult.amplitude / raycastResult.distanceTravelled) == 0)
+        // { 
+        //     Debug.Log("Error applying delay!"); 
+        // } 
+        // else 
+        // {
+        //     Debug.Log("Delay applied!"); 
+        // }
     }
+
+    // public void CalculateFilterCoefficients(MaterialAudioAttributes materialAudioAttributes)
+    // {
+    //     float frontBackInformation = Map(raycastResult.frontBackInformation, 180.0f, 0.0f, 0.4f, 1.0f)
+    // }
 
     public void ApplyRaycastResults(List<RaycastResult> raycastResults)
     {
+        Debug.Log("Applying " + raycastResults.Count + " raycast results to the plugin!");
+
         foreach (RaycastResult result in raycastResults)
         {
             // note: the amplitude is inversely proportional to the distance travelled

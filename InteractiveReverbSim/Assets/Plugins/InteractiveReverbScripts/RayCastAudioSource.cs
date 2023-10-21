@@ -58,26 +58,7 @@ public class RayCastAudioSource : MonoBehaviour
 
         // Initialize the spectrumData array with the number of bands
         spectrumData = new float[numBands];
-
-        // We call a repeating function that will send the raycast results to the audioManager
-        // This is done at the sample rate of the audio source
-        // InvokeRepeating("SendRaycastResults", 0.0f, 1.0f / sampleRate);
     }
-
-    // void SendRaycastResults()
-    // {
-        // // send the raycast results to the audioManager and on to the JUCE plugin
-        // if (audioManager != null && raycastResults.Count > 0)
-        // {
-        //     audioManager.ApplyRaycastResults(raycastResults);
-        //     // reset the raycast results every frame
-        //     raycastResults.Clear();
-        // }
-        // else
-        // {
-        //     (if debug) Debug.Log("AudioManager not selected!");
-        // }
-    // }
 
     // Update is called once per frame
     void Update()

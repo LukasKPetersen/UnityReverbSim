@@ -350,8 +350,10 @@
 -r:"Library/Bee/artifacts/200b0aE.dag/UnityEditor.UI.ref.dll"
 -r:"Library/Bee/artifacts/200b0aE.dag/UnityEngine.UI.ref.dll"
 "Assets/Plugins/InteractiveReverbScripts/AudioManager.cs"
+"Assets/Plugins/InteractiveReverbScripts/MaterialAudioAttributes.cs"
 "Assets/Plugins/InteractiveReverbScripts/RayCastAudioSource.cs"
 "Assets/Plugins/InteractiveReverbScripts/RaycastResult.cs"
+"Assets/Plugins/InteractiveReverbScripts/SourceToListenerLink.cs"
 "Assets/Plugins/InteractiveReverbScripts/Visualization.cs"
 -langversion:9.0
 

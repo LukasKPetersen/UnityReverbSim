@@ -26,7 +26,7 @@ SpatiotemporalReverbAudioProcessor::SpatiotemporalReverbAudioProcessor()
                                                       "Gain",
                                                       0.0f,
                                                       1.0f,
-                                                      0.5f));
+                                                      1.0f));
     addParameter(pan = new juce::AudioParameterFloat(juce::ParameterID("pan", 1),
                                                       "Pan",
                                                       -1.0f,
@@ -67,12 +67,14 @@ SpatiotemporalReverbAudioProcessor::SpatiotemporalReverbAudioProcessor()
     
     // we set panSmoother = 0.5 and not 0.0 since JUCE variables are interpreted as values between 0 and 1 in Unity
     panSmoother = 0.5f;
-    gainSmoother = 0.5f;
+    gainSmoother = 1.0f;
     
-    applyAudioPositioning = [&] (float panInfo, float amplitude)
+    applyAudioPositioning = [&] (float panInfo, float distance)
     {
+        jassert(distance != 0.0f);
+        
         // instead of taking the direct value from Unity we apply smoothening to avoid audio artifacts
-        gainSmoother -= 0.02 * (gainSmoother - amplitude);
+        gainSmoother -= 0.02 * (gainSmoother - 1 / distance); // amplitude is inversely proportional to distance
         panSmoother -= 0.01 * (panSmoother - panInfo);
 
         // set the value parameter based on the Unity input
