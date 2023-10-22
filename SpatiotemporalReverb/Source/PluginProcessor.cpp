@@ -109,17 +109,17 @@ SpatiotemporalReverbAudioProcessor::SpatiotemporalReverbAudioProcessor()
         filter.setDistanceFilter(distance);
     };
     
-    clearEchoes = [&] ()
-    {
-        delay.clearEchoes();
-    };
-    
-    applyDelay = [&] (float delayInSeconds, float soundReduction)
-    {
-        // for now, we apply the echoes as if we were working in mono
-        delay.addEcho(delayInSeconds, soundReduction, 0);
-        delay.addEcho(delayInSeconds, soundReduction, 1);
-    };
+//    clearEchoes = [&] ()
+//    {
+//        delay.clearEchoes();
+//    };
+//    
+//    applyDelay = [&] (float delayInSeconds, float soundReduction)
+//    {
+//        // for now, we apply the echoes as if we were working in mono
+//        delay.addEcho(delayInSeconds, soundReduction, 0);
+//        delay.addEcho(delayInSeconds, soundReduction, 1);
+//    };
 }
 
 SpatiotemporalReverbAudioProcessor::~SpatiotemporalReverbAudioProcessor()
@@ -255,7 +255,6 @@ void SpatiotemporalReverbAudioProcessor::processBlock (juce::AudioBuffer<float>&
     {
         // set delay time
         delay.setDelayTime(ch, ch == 0 ? delayTimeLeft->get() : delayTimeRight->get());
-        delay.setLowpassFreq(ch, lowPassFreq->get());
         
         auto* channelReadData = buffer.getReadPointer (ch);
         

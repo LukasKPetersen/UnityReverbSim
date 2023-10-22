@@ -23,10 +23,6 @@ public:
         setWetLevel (0.8f);
         setDryLevel (1.0f);
         setFeedback (0.0f); // I don't think I'll need feedback but it's easier to remove than add...
-        
-        // set frequency cutoff for left, and right channel
-        setLowpassFreq(0, 2e3);
-        setLowpassFreq(1, 2e3);        
     }
     
     void prepare (const juce::dsp::ProcessSpec& spec)
@@ -36,29 +32,50 @@ public:
         
         sampleRate = (Type) spec.sampleRate;
         updateDelayLineSize();
-        
-        // prepare filter for each channel
-        filterCoefs = juce::dsp::IIR::Coefficients<Type>::makeFirstOrderLowPass(sampleRate, Type (1e2));
-        for (auto& filter : filters)
-        {
-            filter.prepare (spec);
-            filter.coefficients = filterCoefs;
-        }        
-    }
-    
-    void setLowpassFreq (size_t channel, float freq)
-    {
-        filters[channel].coefficients = juce::dsp::IIR::Coefficients<Type>::makeFirstOrderLowPass(sampleRate, freq);
     }
     
     void reset()
     {
-        for (auto& filter : filters)
-            filter.reset();
-        
         for (auto& delayLine : delayLines)
             delayLine.clear();
     }
+    
+    std::vector<Type> processChannelBuffer (size_t channel, const Type* buffer, size_t numSamples)
+    {
+        std::vector<Type> output(numSamples);
+        
+        auto& delayLine = delayLines[channel];
+        
+        // TODO: make parallel with std::for_each(). Although, I see some potential issues with the delay line...
+        for (size_t sample = 0; sample < numSamples; ++sample)
+        {
+            auto inputSample = buffer[sample];
+                                    
+            // get the delayedSignal from the delay line and apply filter
+            // TODO: make a seperate method for applying filter
+            auto delayedSample = delayLine.get(delayTimes[channel] * sampleRate);
+            
+            // add diffused echo to delay line
+            delayLine.push(inputSample + feedback * delayedSample);
+            
+            // calculate the output sample
+            auto outputSample = dryLevel * inputSample + wetLevel * delayedSample;
+            output[sample] = outputSample;
+        }
+        
+        return output;
+    }
+    
+//    void clearEchoes ()
+//    {
+//        for (std::vector<Echo>& echoesVector : echoes)
+//            echoesVector.clear();
+//    }
+//    
+//    void addEcho (float delayTime, float soundReduction, int channel)
+//    {
+//        echoes[channel].push_back(Echo {delayTime, soundReduction});
+//    }
     
     void setMaxDelayTime (Type newMax)
     {
@@ -98,46 +115,7 @@ public:
         jassert (newFeedbackValue >= Type (0) && newFeedbackValue <= Type (1));
         feedback = newFeedbackValue;
     }
-    
-    std::vector<Type> processChannelBuffer (size_t channel, const Type* buffer, size_t numSamples)
-    {
-        std::vector<Type> output(numSamples);
-        
-        auto& delayLine = delayLines[channel];
-        auto& filter = filters[channel];
-        
-        // TODO: make parallel with std::for_each(). Although, I see some potential issues with the delay line...
-        for (size_t sample = 0; sample < numSamples; ++sample)
-        {
-            auto inputSample = buffer[sample];
-                                    
-            // get the delayedSignal from the delay line and apply filter
-            // TODO: make a seperate method for applying filter
-            auto delayedSample = filter.processSample (delayLine.get(delayTimes[channel]));
-            
-            // add diffused echo to delay line
-            delayLine.push(inputSample + feedback * delayedSample);
-            
-            // calculate the output sample
-            auto outputSample = dryLevel * inputSample + wetLevel * delayedSample;
-            output[sample] = outputSample;
-        }
-        
-        return output;
-    }
-    
-    void clearEchoes ()
-    {
-        for (std::vector<Echo>& echoesVector : echoes)
-            echoesVector.clear();
-    }
-    
-    void addEcho (float delayTime, float soundReduction, int channel)
-    {
-        echoes[channel].push_back(Echo {delayTime, soundReduction});
-    }
 
-    
 private:
     // parameters
     Type maxDelayTime { 2.0f };
@@ -151,18 +129,18 @@ private:
     // delay lines
     std::array<DelayLine<Type>, maxNumChannels> delayLines;
     std::array<Type,            maxNumChannels> delayTimes;
-        
+    
     // we define the data structure that holds each individual echo
-    struct Echo
-    {
-        float delayInSeconds;
-        float soundReduction;
-    };
-    std::array<std::vector<Echo>, maxNumChannels> echoes;
+//    struct Echo
+//    {
+//        float delayInSeconds;
+//        float soundReduction;
+//    };
+//    std::array<std::vector<Echo>, maxNumChannels> echoes;
 
     // filters
-    std::array<juce::dsp::IIR::Filter<Type>, maxNumChannels> filters;
-    typename juce::dsp::IIR::Coefficients<Type>::Ptr filterCoefs;
+//    std::array<juce::dsp::IIR::Filter<Type>, maxNumChannels> filters;
+//    typename juce::dsp::IIR::Coefficients<Type>::Ptr filterCoefs;
     
     // helper function
     void updateDelayLineSize()
