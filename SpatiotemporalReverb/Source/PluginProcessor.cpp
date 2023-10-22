@@ -90,6 +90,7 @@ SpatiotemporalReverbAudioProcessor::SpatiotemporalReverbAudioProcessor()
     panSmoother = 0.5f;
     gainSmoother = 1.0f;
     
+    // TODO: make it so that this function is only called on player movement
     applyAudioPositioning = [&] (float panInfo, float frontBackInfo, float distance)
     {
         jassert(distance != 0.0f);
@@ -102,7 +103,7 @@ SpatiotemporalReverbAudioProcessor::SpatiotemporalReverbAudioProcessor()
         getParameters()[0]->setValue(gainSmoother);
         getParameters()[1]->setValue(panSmoother);
         
-        diffusion.setTotalDiffusionTime(distance / 343.0f * 4.0f); // the last factor is just applyied for audiable effect
+        diffusion.adjustDiffusionSize(distance / 343.0f * 4.0f); // the last factor is just applyied for audiable effect
         
         filter.setHeadShadowFilter(panInfo, frontBackInfo);
         filter.setDistanceFilter(distance);

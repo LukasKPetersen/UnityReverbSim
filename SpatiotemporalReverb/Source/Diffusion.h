@@ -10,31 +10,30 @@
 #include "DiffusionStep.h"
 
 // based on ADC 21' talk: Let's Write a Reverb - Geraint Luff
-template<typename Type, size_t numChannels = 8, size_t stepCount = 4>
+template<typename Type, size_t numChannels = 8, size_t numDiffusionSteps = 8>
 class Diffusion
 {
 public:
     Diffusion()
     {
-        setTotalDiffusionTime(0.120f);
         setWetLevel (0.8f);
         setDryLevel (1.0f);
     }
     
-    Type processSample (Type input)
-    {
-        // split the input signal into the diffusion channels
-        std::array<Type, numChannels> splitSignal;
-        splitSignal.fill(input);
-        
-        for (auto& step : diffusionSteps)
-            splitSignal = step.process (splitSignal);
-        
-        // combine the split signal to a single channel
-        Type result = std::tanh (std::accumulate (std::begin(splitSignal), std::end(splitSignal), 0.0f));
-        
-        return result;
-    }
+//    Type processSample (Type input)
+//    {
+//        // split the input signal into the diffusion channels
+//        std::array<Type, numChannels> splitSignal;
+//        splitSignal.fill(input);
+//        
+//        for (auto& step : diffusionSteps)
+//            splitSignal = step.process (splitSignal);
+//        
+//        // combine the split signal to a single channel
+//        Type result = std::tanh (std::accumulate (std::begin(splitSignal), std::end(splitSignal), 0.0f));
+//        
+//        return result;
+//    }
     
     std::vector<Type> processChannelBuffer (size_t channel, const Type* buffer, size_t numSamples)
     {
@@ -50,8 +49,13 @@ public:
             splitSignal.fill(inputSample);
             
             // add the diffusion
-            for (auto& step : diffusionSteps)
-                splitSignal = step.process (splitSignal);
+            for (size_t step = 0; step < numDiffusionSteps; ++step)
+            {
+                if (activeDiffusionSteps[step])
+                    splitSignal = diffusionSteps[step].process (splitSignal);
+                else
+                    break;
+            }
             
             // combine the split signal to a single channel
             Type outputSample = std::tanh (std::accumulate (std::begin(splitSignal), std::end(splitSignal), 0.0f));
@@ -62,39 +66,34 @@ public:
         return output;
     }
     
-    void prepare (Type sampleRate)
+    void prepare (Type newSampleRate)
     {
-        this->sampleRate = sampleRate;
-        int samplesPerStep = (size_t) 0.040f * sampleRate;
+        sampleRate = newSampleRate;
+        int samplesPerStep = (int)(diffusionStepAtomicSize * sampleRate);
         
-        for (int step = 0; step < diffusionSteps.size(); ++step)
+        for (auto& step : diffusionSteps)
         {
-            juce::Range<int> diffusionStepRange (samplesPerStep * step, samplesPerStep * (step + 1));
-            diffusionSteps[step].prepare (diffusionStepRange);
+            step.prepare (samplesPerStep);
+            samplesPerStep *= 2;
         }
     }
     
-    void setTotalDiffusionTime (Type newDiffusionTime)
+    void adjustDiffusionSize (Type diffusionTime)
     {
-        jassert (newDiffusionTime > Type (0.0f));
-        
-        totalDiffusionTime = newDiffusionTime;
-        
-        // we adjust the number of diffusion steps so that there is one step for every 40ms
-        while (totalDiffusionTime / Type (0.040f) < diffusionSteps.size())
-            diffusionSteps.push_back(DiffusionStep<Type, numChannels>());
-        
-        while (totalDiffusionTime / Type (0.040f) > diffusionSteps.size())
-            diffusionSteps.pop_back();
-        
-        prepare(sampleRate);
+        jassert (diffusionTime >= Type (0.0f));
+                
+        // activate or deactivate diffusion steps, depending on the distance to the listener
+        for (int step = 0; step < numDiffusionSteps; ++step)
+        {
+            activeDiffusionSteps[step] = (diffusionTime > diffusionStepAtomicSize * step) ? true : false;
+        }
     }
     
-//    void setDiffusionStepLengths (float totalDiffusionTimeInSeconds)
-//    {
-//        for (auto& step : diffusionSteps)
-//            step.delayRangeInSeconds = totalDiffusionTimeInSeconds / ;
-//    }
+    void setDiffusionStepAtomicSize (Type newSize)
+    {
+        jassert (newSize > Type (0.0f));
+        diffusionStepAtomicSize = newSize;
+    }
     
     void setWetLevel (Type newWetLevel)
     {
@@ -114,9 +113,11 @@ private:
     Type sampleRate { Type (44.1e3) };
     Type wetLevel;
     Type dryLevel;
-    Type totalDiffusionTime { Type (0.120f) };
+    Type diffusionStepAtomicSize { Type (0.048f) };
+    
+    std::array<bool, numDiffusionSteps> activeDiffusionSteps;
     
     // we declare an array of diffusion steps that functions as a diffusion chain
-//    std::array<DiffusionStep<Type, numChannels>, stepCount> diffusionSteps;
-    std::vector<DiffusionStep<Type, numChannels>> diffusionSteps;
+    std::array<DiffusionStep<Type, numChannels>, numDiffusionSteps> diffusionSteps;
+//    std::vector<DiffusionStep<Type, numChannels>> diffusionSteps;
 };

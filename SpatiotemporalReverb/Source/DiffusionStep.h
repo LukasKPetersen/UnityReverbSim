@@ -19,15 +19,36 @@ public:
     {
     }
     
-    void prepare (juce::Range<int> delaySamplesRange)
+    
+    // OLD ONE
+//    void prepare (juce::Range<int> delaySamplesRange)
+//    {
+//        // we set up each of the diffusion-step channels
+//        for (int ch = 0; ch < numChannels; ++ch)
+//        {
+//            // we set the delay range for the specific channel
+//            juce::Range<int> range((delaySamplesRange.getLength() / numChannels) * ch, (delaySamplesRange.getLength() / numChannels) * (ch + 1));
+//            // we choose a random delay within the range
+//            delayInSamples[ch] = random.nextInt(range) + delaySamplesRange.getStart();
+//            
+//            // we set up the delay line
+//            delayLines[ch].resize (delayInSamples[ch] + 1);
+//            delayLines[ch].clear();
+//            
+//            // we randomly set polarity inversions
+//            invertPolarity[ch] = random.nextBool();
+//        }
+//    }
+    
+    void prepare (int delayInSamplesUpperBound)
     {
         // we set up each of the diffusion-step channels
         for (int ch = 0; ch < numChannels; ++ch)
         {
             // we set the delay range for the specific channel
-            juce::Range<int> range((delaySamplesRange.getLength() / numChannels) * ch, (delaySamplesRange.getLength() / numChannels) * (ch + 1));
+            juce::Range<int> range((delayInSamplesUpperBound / numChannels) * ch, (delayInSamplesUpperBound / numChannels) * (ch + 1));
             // we choose a random delay within the range
-            delayInSamples[ch] = random.nextInt(delaySamplesRange) + delaySamplesRange.getStart();
+            delayInSamples[ch] = random.nextInt(range);
             
             // we set up the delay line
             delayLines[ch].resize (delayInSamples[ch] + 1);

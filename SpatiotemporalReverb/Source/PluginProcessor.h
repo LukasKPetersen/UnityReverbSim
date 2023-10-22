@@ -88,7 +88,7 @@ private:
     float panSmoother;
     float gainSmoother;
     
-    Diffusion<float, 8, 4> diffusion;
+    Diffusion<float, 8, 8> diffusion;
     Delay<float> delay;
     Filter<float, 2> filter;
     
