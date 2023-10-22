@@ -16,9 +16,6 @@ public:
     {
         setWetLevel (0.8f);
         setDryLevel (1.0f);
-        
-        headShadowFreqSmoothingLeft = 5e3f;
-        headShadowFreqSmoothingRight = 5e3f;
     }
     
     void prepare (const juce::dsp::ProcessSpec& spec)
@@ -35,37 +32,34 @@ public:
         // set up the distance filter
         distanceFilter.prepare (spec);
         distanceFilter.coefficients = juce::dsp::IIR::Coefficients<Type>::makeAllPass (sampleRate, 5e3f);
-        
-//        for (auto& filter : filters)
-//            filter.prepare (spec);
     }
-
-    std::vector<Type> processChannelBuffer (size_t channel, const Type* buffer, size_t numSamples)
+    
+    template <typename ProcessContext>
+    void process (const ProcessContext& context)
     {
-        std::vector<Type> output(numSamples);
-                
-        for (size_t sample = 0; sample < numSamples; ++sample)
-        {
-            auto inputSample = buffer[sample];
-            auto filteredSample = inputSample;
-            
-            
-            // apply filters to sample
-//            for (auto& filter : filters)
-//                filteredSample = filter.processSample (filteredSample);
-            
-            // apply head-shadow filter
-            filteredSample = headShadowFilter[channel].processSample (filteredSample);
-            
-            // apply distance filter
-            filteredSample = distanceFilter.processSample (filteredSample);
-            
-            // calculate the output sample
-            auto outputSample = dryLevel * inputSample + wetLevel * filteredSample;
-            output[sample] = outputSample;
-        }
+        auto inputBlock = context.getInputBlock();
+        auto outputBlock = context.getOutputBlock();
         
-        return output;
+        size_t channels = inputBlock.getNumChannels();
+        size_t samples = inputBlock.getNumSamples();
+        
+        for (int ch = 0; ch < channels; ++ch)
+        {
+            for (int sample = 0; sample < samples; ++sample)
+            {
+                auto inputSample = inputBlock.getSample (ch, sample);
+                auto filteredSample = inputSample;
+                
+                // apply head-shadow filter
+                filteredSample = headShadowFilter[ch].processSample (filteredSample);
+                
+                // apply distance filter
+                filteredSample = distanceFilter.processSample (filteredSample);
+                
+                // calculate the output sample
+                outputBlock.setSample (ch, sample, dryLevel * inputSample + wetLevel * filteredSample);
+            }
+        }
     }
     
     void setHeadShadowFilter (float panInfo, float frontBackInfo)
@@ -75,11 +69,11 @@ public:
             float freqCutoff = 5e3f;
             
             if (frontBackInfo >= 130.0f)
-                freqCutoff = 3e3f;
+                freqCutoff = 3e2f;
             else if (panInfo > 0.75f && ch == 0)
-                freqCutoff = 3e3f;
+                freqCutoff = 3e2f;
             else if (panInfo < 0.25f && ch == 1)
-                freqCutoff = 3e3f;
+                freqCutoff = 3e2f;
             
             headShadowFilter[ch].coefficients = juce::dsp::IIR::Coefficients<Type>::makeFirstOrderLowPass(sampleRate, freqCutoff);
         }
@@ -109,9 +103,6 @@ private:
     Type sampleRate { Type (44.1e3) };
     Type wetLevel;
     Type dryLevel;
-    
-    float headShadowFreqSmoothingLeft;
-    float headShadowFreqSmoothingRight;
     
     std::array<juce::dsp::IIR::Filter<Type>, maxNumChannels> headShadowFilter;
     juce::dsp::IIR::Filter<Type> distanceFilter;

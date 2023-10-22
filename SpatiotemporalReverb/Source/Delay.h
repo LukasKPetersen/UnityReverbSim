@@ -40,31 +40,35 @@ public:
             delayLine.clear();
     }
     
-    std::vector<Type> processChannelBuffer (size_t channel, const Type* buffer, size_t numSamples)
+    template <typename ProcessContext>
+    void process (const ProcessContext& context)
     {
-        std::vector<Type> output(numSamples);
+        auto inputBlock = context.getInputBlock();
+        auto outputBlock = context.getOutputBlock();
         
-        auto& delayLine = delayLines[channel];
+        size_t channels = inputBlock.getNumChannels();
+        size_t samples = inputBlock.getNumSamples();
         
-        // TODO: make parallel with std::for_each(). Although, I see some potential issues with the delay line...
-        for (size_t sample = 0; sample < numSamples; ++sample)
+        for (int ch = 0; ch < channels; ++ch)
         {
-            auto inputSample = buffer[sample];
-                                    
-            // get the delayedSignal from the delay line and apply filter
-            // TODO: make a seperate method for applying filter
-            auto delayedSample = delayLine.get(delayTimes[channel] * sampleRate);
+            auto& delayLine = delayLines[ch];
             
-            // add diffused echo to delay line
-            delayLine.push(inputSample + feedback * delayedSample);
-            
-            // calculate the output sample
-            auto outputSample = dryLevel * inputSample + wetLevel * delayedSample;
-            output[sample] = outputSample;
+            for (int sample = 0; sample < samples; ++sample)
+            {
+                auto inputSample = inputBlock.getSample (ch, sample);
+                                        
+                // get the delayedSignal from the delay line and apply filter
+                auto delayedSample = delayLine.get(delayTimes[ch] * sampleRate);
+                
+                // add diffused echo to delay line
+                delayLine.push(inputSample + feedback * delayedSample);
+                
+                // calculate the output sample and send it to the output signal
+                outputBlock.setSample (ch, sample, dryLevel * inputSample + wetLevel * delayedSample);
+            }
         }
-        
-        return output;
     }
+    
     
 //    void clearEchoes ()
 //    {

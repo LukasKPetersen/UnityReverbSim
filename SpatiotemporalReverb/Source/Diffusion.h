@@ -10,7 +10,7 @@
 #include "DiffusionStep.h"
 
 // based on ADC 21' talk: Let's Write a Reverb - Geraint Luff
-template<typename Type, size_t numChannels = 8, size_t numDiffusionSteps = 8>
+template<typename Type, size_t numDiffusionChannels = 8, size_t numDiffusionSteps = 8>
 class Diffusion
 {
 public:
@@ -20,55 +20,43 @@ public:
         setDryLevel (1.0f);
     }
     
-//    Type processSample (Type input)
-//    {
-//        // split the input signal into the diffusion channels
-//        std::array<Type, numChannels> splitSignal;
-//        splitSignal.fill(input);
-//        
-//        for (auto& step : diffusionSteps)
-//            splitSignal = step.process (splitSignal);
-//        
-//        // combine the split signal to a single channel
-//        Type result = std::tanh (std::accumulate (std::begin(splitSignal), std::end(splitSignal), 0.0f));
-//        
-//        return result;
-//    }
-    
-    std::vector<Type> processChannelBuffer (size_t channel, const Type* buffer, size_t numSamples)
+    template <typename ProcessContext>
+    void process (const ProcessContext& context)
     {
-        std::vector<Type> output(numSamples);
-                
-        // TODO: make parallel with std::for_each(). Although, I see some potential issues with the delay line...
-        for (size_t sample = 0; sample < numSamples; ++sample)
-        {
-            auto inputSample = buffer[sample];
-            
-            // split the input signal into the diffusion channels
-            std::array<Type, numChannels> splitSignal;
-            splitSignal.fill(inputSample);
-            
-            // add the diffusion
-            for (size_t step = 0; step < numDiffusionSteps; ++step)
-            {
-                if (activeDiffusionSteps[step])
-                    splitSignal = diffusionSteps[step].process (splitSignal);
-                else
-                    break;
-            }
-            
-            // combine the split signal to a single channel
-            Type outputSample = std::tanh (std::accumulate (std::begin(splitSignal), std::end(splitSignal), 0.0f));
-                        
-            output[sample] = outputSample;
-        }
+        auto inputBlock = context.getInputBlock();
+        auto outputBlock = context.getOutputBlock();
         
-        return output;
+        size_t channels = inputBlock.getNumChannels();
+        size_t samples = inputBlock.getNumSamples();
+        
+        for (int ch = 0; ch < channels; ++ch)
+        {
+            for (int sample = 0; sample < samples; ++sample)
+            {
+                auto inputSample = inputBlock.getSample (ch, sample);
+                
+                // split the input signal into the diffusion channels
+                std::array<Type, numDiffusionChannels> splitSignal;
+                splitSignal.fill(inputSample);
+                
+                // add the diffusion
+                for (size_t step = 0; step < numDiffusionSteps; ++step)
+                {
+                    if (activeDiffusionSteps[step])
+                        splitSignal = diffusionSteps[step].process (splitSignal);
+                    else
+                        break;
+                }
+    
+                // combine the split signal to a single channel and send it to the output signal
+                outputBlock.setSample (ch, sample, std::tanh (std::accumulate (std::begin(splitSignal), std::end(splitSignal), 0.0f)));
+            }
+        }
     }
     
-    void prepare (Type newSampleRate)
+    void prepare (const juce::dsp::ProcessSpec& spec)
     {
-        sampleRate = newSampleRate;
+        sampleRate = spec.sampleRate;
         int samplesPerStep = (int)(diffusionStepAtomicSize * sampleRate);
         
         for (auto& step : diffusionSteps)
@@ -76,6 +64,10 @@ public:
             step.prepare (samplesPerStep);
             samplesPerStep *= 2;
         }
+        
+        // as a default, we only activate the first diffusion step
+        activeDiffusionSteps.fill (false);
+        activeDiffusionSteps[0] = true;
     }
     
     void adjustDiffusionSize (Type diffusionTime)
@@ -83,7 +75,8 @@ public:
         jassert (diffusionTime >= Type (0.0f));
                 
         // activate or deactivate diffusion steps, depending on the distance to the listener
-        for (int step = 0; step < numDiffusionSteps; ++step)
+        // we always have the first diffusion step activated
+        for (int step = 1; step < numDiffusionSteps; ++step)
         {
             activeDiffusionSteps[step] = (diffusionTime > diffusionStepAtomicSize * step) ? true : false;
         }
@@ -118,6 +111,5 @@ private:
     std::array<bool, numDiffusionSteps> activeDiffusionSteps;
     
     // we declare an array of diffusion steps that functions as a diffusion chain
-    std::array<DiffusionStep<Type, numChannels>, numDiffusionSteps> diffusionSteps;
-//    std::vector<DiffusionStep<Type, numChannels>> diffusionSteps;
+    std::array<DiffusionStep<Type, numDiffusionChannels>, numDiffusionSteps> diffusionSteps;
 };

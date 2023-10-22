@@ -62,35 +62,36 @@ public:
     //==============================================================================
     void getStateInformation (juce::MemoryBlock& destData) override;
     void setStateInformation (const void* data, int sizeInBytes) override;
+    
+    //==============================================================================
+    void setParameters();
 
 private:
     // localization parameters
     juce::AudioParameterFloat* gain;
     juce::AudioParameterFloat* pan;
     
-    // diffusion parameters
-    juce::AudioParameterFloat* diffusionLevel;
-    
     // delay parameters
-    juce::AudioParameterFloat* delayLevel;
     juce::AudioParameterFloat* delayTimeLeft;
     juce::AudioParameterFloat* delayTimeRight;
-    
-    // filter parameters
-    juce::AudioParameterFloat* filterLevel;
     
     // fx parameters
     juce::AudioParameterFloat* wetLevel;
     juce::AudioParameterFloat* dryLevel;
     juce::AudioParameterFloat* feedback;
-    juce::AudioParameterFloat* lowPassFreq;
     
+    // S-curve parameters
     float panSmoother;
     float gainSmoother;
     
-    Diffusion<float, 8, 8> diffusion;
-    Delay<float> delay;
-    Filter<float, 2> filter;
+    // processor chain
+    enum
+    {
+        diffusionIndex,
+        delayIndex,
+        filterIndex
+    };
+    juce::dsp::ProcessorChain<Diffusion<float, 8, 8>, Delay<float>, Filter<float, 2>> processorChain;
     
     //==============================================================================
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (SpatiotemporalReverbAudioProcessor)
