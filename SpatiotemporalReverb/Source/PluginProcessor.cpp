@@ -67,22 +67,26 @@ SpatiotemporalReverbAudioProcessor::SpatiotemporalReverbAudioProcessor()
     gainSmoother = 1.0f;
     
     // TODO: make it so that this function is only called on player movement, not every frame necessarily
-    applyAudioPositioning = [&] (float panInfo, float frontBackInfo, float distance)
+    applyAudioPositioning = [&] (float panInfo, float frontBackInfo, float distance, float transmission, float filterCoefLeft, float filterCoefRight)
     {
         jassert(distance != 0.0f);
         
         // instead of taking the direct value from Unity we apply smoothening to avoid audio artifacts (an S-curve)
-        gainSmoother -= 0.02 * (gainSmoother - 1 / distance); // amplitude is inversely proportional to distance
+        gainSmoother -= 0.02 * (gainSmoother - transmission / distance); // amplitude is inversely proportional to distance
         panSmoother -= 0.01 * (panSmoother - panInfo);
-
+        
         // set the value parameter based on the Unity input
         getParameters()[0]->setValue(gainSmoother);
         getParameters()[1]->setValue(panSmoother);
         
+        // set diffusion amount
         processorChain.template get<diffusionIndex>().adjustDiffusionSize(distance / 343.0f * 4.0f);
         
+        // set filters
         processorChain.template get<filterIndex>().setHeadShadowFilter(panInfo, frontBackInfo);
         processorChain.template get<filterIndex>().setDistanceFilter(distance);
+        processorChain.template get<filterIndex>().setOcclusionFilter(filterCoefLeft, 0);
+        processorChain.template get<filterIndex>().setOcclusionFilter(filterCoefRight, 1);
     };
     
 //    clearEchoes = [&] ()

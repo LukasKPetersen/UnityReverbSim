@@ -5,16 +5,16 @@ m_ProjectFiles:
     m_ContentTrackingEnabled: 1
     m_ModificationDate:
       serializedVersion: 2
-      ticks: 638335255110000000
-    m_Hash: 3281499305
+      ticks: 638342881030000000
+    m_Hash: 2839878657
   m_LockFileStatus:
     m_FilePath: /Users/lukaspetersen/Documents/DTU/Bachelor's Project/UnityReverbSim/InteractiveReverbSim/Packages/packages-lock.json
     m_PathExists: 1
     m_ContentTrackingEnabled: 1
     m_ModificationDate:
       serializedVersion: 2
-      ticks: 638335255110000000
-    m_Hash: 481964595
+      ticks: 638342881100000000
+    m_Hash: 3928433058
 m_EmbeddedPackageManifests:
   m_ManifestsStatus: {}
 m_LocalPackages:
@@ -22,12 +22,12 @@ m_LocalPackages:
 m_ProjectPath: /Users/lukaspetersen/Documents/DTU/Bachelor's Project/UnityReverbSim/InteractiveReverbSim/Packages
 m_EditorVersion: 2021.3.23f1 (213b516bf396)
 m_ResolvedPackages:
-- packageId: com.unity.collab-proxy@2.0.3
+- packageId: com.unity.collab-proxy@2.1.0
   testable: 0
   isDirectDependency: 1
-  version: 2.0.3
+  version: 2.1.0
   source: 1
-  resolvedPath: /Users/lukaspetersen/Documents/DTU/Bachelor's Project/UnityReverbSim/InteractiveReverbSim/Library/PackageCache/com.unity.collab-proxy@2.0.3
+  resolvedPath: /Users/lukaspetersen/Documents/DTU/Bachelor's Project/UnityReverbSim/InteractiveReverbSim/Library/PackageCache/com.unity.collab-proxy@2.1.0
   assetPath: Packages/com.unity.collab-proxy
   name: com.unity.collab-proxy
   displayName: Version Control
@@ -36,7 +36,7 @@ m_ResolvedPackages:
     email: 
     url: 
   category: Editor
-  type: asset
+  type: assets
   description: The package gives you the ability to use Unity Version Control in
     the Unity editor. To use Unity Version Control, a subscription is required. Learn
     more about how you can get started for free by visiting plasticscm.com.
@@ -152,13 +152,13 @@ m_ResolvedPackages:
     configSource: 0
   hideInEditor: 0
   isAssetStorePackage: 0
-  datePublishedTicks: 638158826940000000
-  documentationUrl: https://docs.unity3d.com/Packages/com.unity.collab-proxy@2.0/manual/index.html
+  datePublishedTicks: 638301329890000000
+  documentationUrl: https://docs.unity3d.com/Packages/com.unity.collab-proxy@2.1/manual/index.html
   hasRepository: 1
   repository:
     type: git
     url: https://github.cds.internal.unity3d.com/unity/com.unity.cloud.collaborate.git
-    revision: c189c3bb7a025aa19e1f0ab8851a09a34ff94016
+    revision: 179e96acc2f95fcb9dcc91b5fb2ee5f3e85d48aa
     path: 
   unityLifecycle:
     version: 2.0.3

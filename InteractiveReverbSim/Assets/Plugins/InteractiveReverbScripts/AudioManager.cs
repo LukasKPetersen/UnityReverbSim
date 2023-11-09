@@ -18,7 +18,7 @@ public class AudioManager : MonoBehaviour
 
     // function for applying audio positioning
     [DllImport("audioplugin_SpatiotemporalReverb", CallingConvention = CallingConvention.Cdecl)]
-    public static extern int ApplyAudioPositioning(float panInfo, float frontBackInfo, float distance);
+    public static extern int ApplyAudioPositioning(float panInfo, float frontBackInfo, float distance, float transmission, float filterCoefLeft, float filterCoefRight);
 
     // function for clearing previous echoes
     [DllImport("audioplugin_SpatiotemporalReverb", CallingConvention = CallingConvention.Cdecl)]
@@ -39,21 +39,20 @@ public class AudioManager : MonoBehaviour
         // TODO: Why was this again?????
         float panInfoJUCE = Map(raycastResult.panInformation, 180.0f, 0.0f, 0.0f, 1.0f);
 
-        float frontBackInfo = Map(raycastResult.frontBackInformation, 180.0f, 0.0f, 0.0f, 1.0f);
+        // if the player has their back to the audio source, the filter channel information is inverted
+        // TODO: make this cooler
+        int left = raycastResult.frontBackInformation > 90.0f ? 1 : 0;
+        int right = raycastResult.frontBackInformation > 90.0f ? 0 : 1;
 
-        Debug.Log("panInfoJUCE: " + panInfoJUCE + ", frontBackInfo: " + frontBackInfo + ", distance: " + raycastResult.distanceTravelled + ", result.frontback: " + raycastResult.frontBackInformation);
-
-        if (ApplyAudioPositioning (panInfoJUCE, raycastResult.frontBackInformation, raycastResult.distanceTravelled /* / 5 */) == 0) { Debug.Log("Error applying audio positioning!"); }
-
-        // if (ApplyDelay(calculateDelay(raycastResult.distanceTravelled), 
-        //                raycastResult.amplitude / raycastResult.distanceTravelled) == 0)
-        // { 
-        //     Debug.Log("Error applying delay!"); 
-        // } 
-        // else 
-        // {
-        //     Debug.Log("Delay applied!"); 
-        // }
+        if (ApplyAudioPositioning  (panInfoJUCE, 
+                                    raycastResult.frontBackInformation, 
+                                    raycastResult.distanceTravelled, 
+                                    raycastResult.soundReduction,
+                                    raycastResult.filterCoefficients[left],
+                                    raycastResult.filterCoefficients[right]) == 0) 
+        { 
+            Debug.Log("Error applying audio positioning!"); 
+        }
     }
 
     public void ApplyRaycastResults(List<RaycastResult> raycastResults)

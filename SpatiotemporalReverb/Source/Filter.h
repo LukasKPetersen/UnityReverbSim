@@ -32,6 +32,13 @@ public:
         // set up the distance filter
         distanceFilter.prepare (spec);
         distanceFilter.coefficients = juce::dsp::IIR::Coefficients<Type>::makeAllPass (sampleRate, 5e3f);
+        
+        // set up occlusion filter
+        for (auto& filter : occlusionFilter)
+        {
+            filter.prepare (spec);
+            filter.coefficients = juce::dsp::IIR::Coefficients<Type>::makeAllPass (sampleRate, 5e3f);
+        }
     }
     
     template <typename ProcessContext>
@@ -55,6 +62,9 @@ public:
                 
                 // apply distance filter
                 filteredSample = distanceFilter.processSample (filteredSample);
+                
+                // apply occlusion filter
+                filteredSample = occlusionFilter[ch].processSample (filteredSample);
                 
                 // calculate the output sample
                 outputBlock.setSample (ch, sample, dryLevel * inputSample + wetLevel * filteredSample);
@@ -85,6 +95,11 @@ public:
         distanceFilter.coefficients = juce::dsp::IIR::Coefficients<Type>::makeFirstOrderLowPass(sampleRate, freqCutoff);
     }
     
+    void setOcclusionFilter (float freqCutoff, int channel)
+    {
+        occlusionFilter[channel].coefficients = juce::dsp::IIR::Coefficients<Type>::makeFirstOrderLowPass(sampleRate, freqCutoff);
+    }
+    
     void setWetLevel (Type newWetLevel)
     {
         // ensure that the input value is valid, i.e. in range [0, 1]
@@ -106,9 +121,6 @@ private:
     
     std::array<juce::dsp::IIR::Filter<Type>, maxNumChannels> headShadowFilter;
     juce::dsp::IIR::Filter<Type> distanceFilter;
+    std::array<juce::dsp::IIR::Filter<Type>, maxNumChannels> occlusionFilter;
     
-//    std::vector<juce::dsp::ProcessorDuplicator<FilterType>> filters;
-    
-//    std::vector<juce::dsp::IIR::Filter<Type>> filters;
-//    typename juce::dsp::IIR::Coefficients<Type>::Ptr filterCoefs;
 };

@@ -6,5 +6,5 @@ public class RaycastResult
     public float panInformation = 0.0f;
     public float frontBackInformation = 0.0f;
     public float distanceTravelled = 0.0f;
-    public float filterCoefficient = 0.0f;
+    public float[] filterCoefficients = { 0.0f, 0.0f };
 }
