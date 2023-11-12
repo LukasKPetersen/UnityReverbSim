@@ -19,15 +19,10 @@ public class AudioManager : MonoBehaviour
     // function for applying audio positioning
     [DllImport("audioplugin_SpatiotemporalReverb", CallingConvention = CallingConvention.Cdecl)]
     public static extern int ApplyAudioPositioning(float panInfo, float frontBackInfo, float distance, float transmission, float filterCoefLeft, float filterCoefRight);
+    
+    [DllImport("audioplugin_SpatiotemporalReverb", CallingConvention = CallingConvention.Cdecl)]
+    public static extern int SetObstructedReflections(float obstructedReflections);
 
-    // function for clearing previous echoes
-    [DllImport("audioplugin_SpatiotemporalReverb", CallingConvention = CallingConvention.Cdecl)]
-    public static extern int ClearEchoes();
-    
-    // function for applying delay
-    [DllImport("audioplugin_SpatiotemporalReverb", CallingConvention = CallingConvention.Cdecl)]
-    public static extern int ApplyDelay(float delayInSeconds, float soundReduction);
-    
     private void Awake()
     {
         TestConnectionToJuce();
@@ -53,21 +48,6 @@ public class AudioManager : MonoBehaviour
         { 
             Debug.Log("Error applying audio positioning!"); 
         }
-    }
-
-    public void ApplyRaycastResults(List<RaycastResult> raycastResults)
-    {
-        Debug.Log("Applying " + raycastResults.Count + " raycast results to the plugin!");
-
-        foreach (RaycastResult result in raycastResults)
-        {
-            // note: the amplitude is inversely proportional to the distance travelled
-            if (ApplyDelay(calculateDelay(result.distanceTravelled), result.amplitude / result.distanceTravelled) == 0)
-            {
-                Debug.Log("Error applying delay!");
-            }
-        }
-        Debug.Log("Sent " + raycastResults.Count + " raycast results to the plugin!");
     }
 
     public void TestConnectionToJuce() 

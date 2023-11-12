@@ -7,10 +7,10 @@ class SourceToListenerLink : MonoBehaviour
     public AudioSource audioSource;
     public GameObject listener;
     public AudioManager audioManager;
-    public Visualization visualization = new Visualization();
 
     public int numAnalysisRays = 32;
     public bool debug = false;
+    public bool visualize = true;
     public bool boostEffect = false;
     float factor = 1.0f;
 
@@ -36,7 +36,7 @@ class SourceToListenerLink : MonoBehaviour
 
     void Update()
     {   
-        if (boostEffect) factor = 7.0f;
+        if (boostEffect) factor = 5.0f;
         else factor = 1.0f;
 
         // Calculate the distance between the source and the listener
@@ -52,17 +52,13 @@ class SourceToListenerLink : MonoBehaviour
         // if the direct line of sight is blocked, shoot analysis rays
         if (hits.Length > 1) shootAnalysisRays(direction, distance);
 
-        if (debug) Debug.Log("filterCoef Left: " + filterCoefficient[0]);
-        if (debug) Debug.Log("filterCoef Right: " + filterCoefficient[1]);
-        if (debug) Debug.Log("transmissionCoef: " + transmissionCoefficient);
-
         // create a new RaycastResult
         RaycastResult link = new RaycastResult
         {
             soundReduction = transmissionCoefficient,
             panInformation = leftRightAngle,
             frontBackInformation = frontBackAngle,
-            distanceTravelled = distance,
+            distanceTravelled = distance * factor,
             filterCoefficients = filterCoefficient
         };
 
@@ -96,6 +92,9 @@ class SourceToListenerLink : MonoBehaviour
             float angle = ray * 360.0f / numAnalysisRays;
             Vector3 direction = Quaternion.AngleAxis(angle, linkDirection) * (linkDirection + new Vector3(1.0f, 1.0f, 1.1f));
 
+            // TODO: outer circle contolling diffusion/reverb
+
+
             // shoot the ray
             RaycastHit hit;
             if (Physics.Raycast(transform.position, direction, out hit, distance))
@@ -116,10 +115,7 @@ class SourceToListenerLink : MonoBehaviour
                 }
 
                 // visualize the ray
-                if (visualization != null)
-                {
-                    visualization.VisualizeRay(true, transform.position, hit.point, 1.0f, 3);
-                }
+                if (visualize) Debug.DrawLine(transform.position, hit.point, new Color(0, 1, 1, 0.7f), 0.02f, true);
             }
             else
             {
@@ -136,10 +132,7 @@ class SourceToListenerLink : MonoBehaviour
                 }
 
                 // visualize the ray
-                if (visualization != null)
-                {
-                    visualization.VisualizeRay(false, transform.position, hit.point, 1.0f, 3);
-                }
+                if (visualize) Debug.DrawRay(transform.position, direction, new Color(0, 1, 0, 0.5f), 0.02f, true);
             }
         }
     }
@@ -177,12 +170,14 @@ class SourceToListenerLink : MonoBehaviour
             }
 
             // visualize the ray
-            if (visualization != null)
-            {
-                visualization.VisualizeRay(true, connectionPoint, hit.point, transmissionCoefficient, hits.Length - 1);
-            }
+            if (visualize) Debug.DrawLine(connectionPoint, hit.point, new Color(0, 0, 0, 1), 0.02f, true);
 
             connectionPoint = hit.point;
         }
+    }
+
+    public Vector3 getListenerPosition()
+    {
+        return listener.transform.position;
     }
 }

@@ -113,6 +113,14 @@ public:
         jassert (newDryLevel >= Type (0) && newDryLevel <= Type (1));
         dryLevel = newDryLevel;
     }
+    
+    void setWetDryBalance (Type newWetLevel)
+    {
+        // ensure that the input value is valid, i.e. in range [0, 1]
+        jassert (newWetLevel >= Type (0) && newWetLevel <= Type (1));
+        wetLevel = newWetLevel;
+        dryLevel = 1.0f - newWetLevel;
+    }
 
 private:
     Type sampleRate { Type (44.1e3) };

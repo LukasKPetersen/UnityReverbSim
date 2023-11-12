@@ -50,21 +50,39 @@ SpatiotemporalReverbAudioProcessor::SpatiotemporalReverbAudioProcessor()
                                                           "Wet level",
                                                           0.0f,
                                                           1.0f,
-                                                          0.8f));
+                                                          1.0f));
     addParameter(dryLevel = new juce::AudioParameterFloat(juce::ParameterID("dryLevel", 1),
                                                           "Dry level",
                                                           0.0f,
                                                           1.0f,
-                                                          1.0f));
+                                                          0.0f));
     addParameter(feedback = new juce::AudioParameterFloat(juce::ParameterID("feedback", 1),
                                                           "Feedback",
                                                           0.0f,
                                                           0.99f,
                                                           0.0f));
+    addParameter(reverbLevel = new juce::AudioParameterFloat(juce::ParameterID("reverbLevel", 1),
+                                                             "Reverb Level",
+                                                             0.0f,
+                                                             1.0f,
+                                                             1.0f));
+    addParameter(directLevel = new juce::AudioParameterFloat(juce::ParameterID("directLevel", 1),
+                                                             "Direct Level",
+                                                             0.0f,
+                                                             1.0f,
+                                                             1.0f));
+    
+    // add filter parameters
+    addParameter(obstructedReflections = new juce::AudioParameterFloat(juce::ParameterID("obstructedReflections", 1),
+                                                                       "Obstructed Reflections",
+                                                                       0.0f,
+                                                                       1.0f,
+                                                                       0.0f));
     
     // we set panSmoother = 0.5 and not 0.0 since JUCE variables are interpreted as values between 0 and 1 in Unity
     panSmoother = 0.5f;
     gainSmoother = 1.0f;
+    obstructedReflectionsSmoother = 0.0f;
     
     // TODO: make it so that this function is only called on player movement, not every frame necessarily
     applyAudioPositioning = [&] (float panInfo, float frontBackInfo, float distance, float transmission, float filterCoefLeft, float filterCoefRight)
@@ -72,34 +90,34 @@ SpatiotemporalReverbAudioProcessor::SpatiotemporalReverbAudioProcessor()
         jassert(distance != 0.0f);
         
         // instead of taking the direct value from Unity we apply smoothening to avoid audio artifacts (an S-curve)
-        gainSmoother -= 0.02 * (gainSmoother - transmission / distance); // amplitude is inversely proportional to distance
-        panSmoother -= 0.01 * (panSmoother - panInfo);
+        gainSmoother -= 0.02f * (gainSmoother - transmission / distance); // amplitude is inversely proportional to distance
+        panSmoother -= 0.01f * (panSmoother - panInfo);
         
         // set the value parameter based on the Unity input
         getParameters()[0]->setValue(gainSmoother);
         getParameters()[1]->setValue(panSmoother);
         
         // set diffusion amount
-        processorChain.template get<diffusionIndex>().adjustDiffusionSize(distance / 343.0f * 4.0f);
+        processorChain.template get<diffusionIndex>().adjustDiffusionSize(distance / 343.0f);
+        
+        occlusionFilterLeftCoef -= 0.4f * (occlusionFilterLeftCoef - filterCoefLeft);
+        occlusionFilterRightCoef -= 0.4f * (occlusionFilterRightCoef - filterCoefLeft);
         
         // set filters
-        processorChain.template get<filterIndex>().setHeadShadowFilter(panInfo, frontBackInfo);
-        processorChain.template get<filterIndex>().setDistanceFilter(distance);
-        processorChain.template get<filterIndex>().setOcclusionFilter(filterCoefLeft, 0);
-        processorChain.template get<filterIndex>().setOcclusionFilter(filterCoefRight, 1);
+        filter.setHeadShadowFilter(panInfo, frontBackInfo);
+        filter.setDistanceFilter(distance);
+        filter.setOcclusionFilter(occlusionFilterLeftCoef, 0);
+        filter.setOcclusionFilter(occlusionFilterRightCoef, 1);
     };
     
-//    clearEchoes = [&] ()
-//    {
-//        delay.clearEchoes();
-//    };
-//    
-//    applyDelay = [&] (float delayInSeconds, float soundReduction)
-//    {
-//        // for now, we apply the echoes as if we were working in mono
-//        delay.addEcho(delayInSeconds, soundReduction, 0);
-//        delay.addEcho(delayInSeconds, soundReduction, 1);
-//    };
+    setObstructedReflections = [&] (float obstructedReflections)
+    {
+        jassert (0.0f <= obstructedReflections && obstructedReflections <= 1.0f);
+        // apply S-curve
+        obstructedReflectionsSmoother -= 0.4f * (obstructedReflectionsSmoother - obstructedReflections);
+        getParameters()[9]->setValue(obstructedReflections);
+    };
+
 }
 
 SpatiotemporalReverbAudioProcessor::~SpatiotemporalReverbAudioProcessor()
@@ -173,6 +191,7 @@ void SpatiotemporalReverbAudioProcessor::prepareToPlay (double sampleRate, int s
 {
     auto spec = juce::dsp::ProcessSpec { sampleRate, (juce::uint32) samplesPerBlock, 2 };
     processorChain.prepare (spec);
+    filter.prepare(spec);
 }
 
 void SpatiotemporalReverbAudioProcessor::releaseResources()
@@ -220,23 +239,46 @@ void SpatiotemporalReverbAudioProcessor::processBlock (juce::AudioBuffer<float>&
     
     setParameters();
     
-    // setup the audio block for processing
+    // setup the audio block(s) for processing
+    juce::AudioBuffer<float> bufferCopy (2, buffer.getNumSamples());
+    for (int ch = 0; ch < totalNumInputChannels; ++ch)
+        bufferCopy.copyFrom (ch, 0, buffer, ch, 0, buffer.getNumSamples());
+
     juce::dsp::AudioBlock<float> block (buffer);
-    juce::dsp::ProcessContextReplacing<float> context (block);
+    juce::dsp::AudioBlock<float> filterOnlyBlock (bufferCopy);
     
-    // process the audio
+    
+    /* SIGNAL 1: Dry Signal -> Diffuser -> Delay -> Filter -> Output */
+    // we process the dry signal through diffusion and delay
+    juce::dsp::ProcessContextReplacing<float> context (block);
     processorChain.process (context);
+    
+    // we send the wet signal through a filter
+    filter.setWetDryBalance(obstructedReflections->get());
+    filter.process (context);
+    
+    
+    /* SIGNAL 2: Dry Signal -> Filter -> Output */
+    // we process the direct signal through the filter
+    juce::dsp::ProcessContextReplacing<float> filterOnlyContext (filterOnlyBlock);
+    filter.setWetDryBalance (1.0f);
+    filter.process (filterOnlyContext);
+    
     
     for (int ch = 0; ch < totalNumInputChannels; ++ch)
     {
         // calculate the pan value (channel-wise)
         float panValue = ch == 0 ?  juce::jmap(pan->get(), -1.0f, 1.0f, -1.0f, 0.0f) * (-1) :
                                     juce::jmap(pan->get(), -1.0f, 1.0f, 0.0f, 1.0f);
-                
+        
         for (int sample = 0; sample < context.getOutputBlock().getNumSamples(); ++sample)
         {
+            auto reverbSample = context.getOutputBlock().getSample (ch, sample);
+            auto filterSample = filterOnlyContext.getOutputBlock().getSample (ch, sample);
+            
             // apply panning and gain control to the processed sample
-            context.getOutputBlock().setSample(ch, sample, context.getOutputBlock().getSample (ch, sample) * panValue * gain->get());
+            auto outputSample = std::tanh (reverbLevel->get() * reverbSample + directLevel->get() * filterSample) * panValue * gain->get();
+            context.getOutputBlock().setSample(ch, sample, outputSample);
         }
     }
 }
@@ -279,10 +321,6 @@ void SpatiotemporalReverbAudioProcessor::setParameters()
     processorChain.template get<delayIndex>().setDryLevel(dryLevel->get());
     processorChain.template get<delayIndex>().setDelayTime(0, delayTimeLeft->get());
     processorChain.template get<delayIndex>().setDelayTime(1, delayTimeRight->get());
-    
-    // set filter parameters
-    processorChain.template get<filterIndex>().setWetLevel(wetLevel->get());
-    processorChain.template get<filterIndex>().setDryLevel(dryLevel->get());
 }
 
 //==============================================================================
