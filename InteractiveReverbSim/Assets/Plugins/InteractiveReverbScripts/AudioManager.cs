@@ -18,10 +18,16 @@ public class AudioManager : MonoBehaviour
 
     // function for applying audio positioning
     [DllImport("audioplugin_SpatiotemporalReverb", CallingConvention = CallingConvention.Cdecl)]
-    public static extern int ApplyAudioPositioning(float panInfo, float frontBackInfo, float distance, float transmission, float filterCoefLeft, float filterCoefRight);
+    public static extern int ApplyAudioPositioning (float panInfo, float frontBackInfo, float distance, float transmission, float filterCoefLeft, float filterCoefRight);
     
     [DllImport("audioplugin_SpatiotemporalReverb", CallingConvention = CallingConvention.Cdecl)]
-    public static extern int SetObstructedReflections(float obstructedReflections);
+    public static extern int SetObstructedReflections (float obstructedReflections);
+    
+    [DllImport("audioplugin_SpatiotemporalReverb", CallingConvention = CallingConvention.Cdecl)]
+    public static extern int SetDiffusionSize (float diffusionTime);
+    
+    [DllImport("audioplugin_SpatiotemporalReverb", CallingConvention = CallingConvention.Cdecl)]
+    public static extern int SetDelayTime (float delayTime);
 
     private void Awake()
     {
@@ -48,6 +54,46 @@ public class AudioManager : MonoBehaviour
         { 
             Debug.Log("Error applying audio positioning!"); 
         }
+        // else 
+        // { 
+        //     Debug.Log("Successfully applied audio positioning!"); 
+        // }
+    }
+
+    public void SendObstructionReflections(float obstructedRays)
+    {
+        if (SetObstructedReflections(obstructedRays) == 0)
+        {
+            Debug.Log("Error setting the obstructed reflections!");
+        }
+        // else
+        // {
+        //     Debug.Log("Successfully set the obstructed reflections!");
+        // }
+    }
+
+    public void ApplyDiffusionTime(float diffusionTime)
+    {
+        if (SetDiffusionSize(diffusionTime / getSoundSpeed(soundMedium.air)) == 0)
+        {
+            Debug.Log("Error applying diffusion time!");
+        }
+        // else
+        // {
+        //     Debug.Log("Successfully set the diffusion time!");
+        // }
+    }
+
+    public void ApplyDelayTime(float distance)
+    {
+        if (SetDelayTime(distance / getSoundSpeed(soundMedium.air)) == 0)
+        {
+            Debug.Log("Error applying delay time!");
+        }
+        // else
+        // {
+        //     Debug.Log("Successfully set the delay time!");
+        // }
     }
 
     public void TestConnectionToJuce() 

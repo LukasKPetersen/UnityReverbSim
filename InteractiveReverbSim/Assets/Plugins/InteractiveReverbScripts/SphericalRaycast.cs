@@ -88,4 +88,17 @@ public class SphericalRaycast
         return numListenerHits / rayCount;
     }
 
+    public float GetLongestDistance()
+    {
+        float result = rayHandler.GetLongestDistance();
+        rayHandler.ResetLongestDistance();
+        return result;
+    }
+
+    public float GetAverageDistance()
+    {
+        float result = rayHandler.GetAverageDistance();
+        rayHandler.ResetAverageDistance();
+        return result;
+    }
 }

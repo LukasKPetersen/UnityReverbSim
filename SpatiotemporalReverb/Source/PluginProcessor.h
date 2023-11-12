@@ -72,13 +72,11 @@ private:
     juce::AudioParameterFloat* pan;
     
     // delay parameters
-    juce::AudioParameterFloat* delayTimeLeft;
-    juce::AudioParameterFloat* delayTimeRight;
+    juce::AudioParameterFloat* feedback;
     
     // fx parameters
     juce::AudioParameterFloat* wetLevel;
     juce::AudioParameterFloat* dryLevel;
-    juce::AudioParameterFloat* feedback;
     juce::AudioParameterFloat* reverbLevel;
     juce::AudioParameterFloat* directLevel;
     
@@ -89,6 +87,7 @@ private:
     float panSmoother;
     float gainSmoother;
     float obstructedReflectionsSmoother;
+    float delayTimeSmoother;
     float occlusionFilterLeftCoef { 5e3 };
     float occlusionFilterRightCoef { 5e3 };
     
@@ -101,9 +100,6 @@ private:
     };
     juce::dsp::ProcessorChain<Diffusion<float, 8, 8>, Delay<float>> processorChain;
     Filter<float, 2> filter;
-    
-    juce::HeapBlock<char> heapBlock;
-    juce::dsp::AudioBlock<float> tempBlock;
     
     //==============================================================================
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (SpatiotemporalReverbAudioProcessor)

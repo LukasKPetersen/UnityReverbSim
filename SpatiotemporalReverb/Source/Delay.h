@@ -18,8 +18,8 @@ public:
     Delay()
     {
         setMaxDelayTime (5.0f);
-        setDelayTime (0, 0.5f); // set left channel delay
-        setDelayTime (1, 0.5f); // set right channel delay
+        setDelayTime (0, 0.0f); // set left channel delay
+        setDelayTime (1, 0.0f); // set right channel delay
         setWetLevel (0.8f);
         setDryLevel (1.0f);
         setFeedback (0.0f); // I don't think I'll need feedback but it's easier to remove than add...
@@ -97,6 +97,15 @@ public:
         jassert (newDelayTime >= Type (0) && newDelayTime <= maxDelayTime);
         
         delayTimes[channel] = newDelayTime;
+    }
+    
+    void setDelayTimes (Type newDelayTime)
+    {
+        // ensure that the input value is valid
+        jassert (newDelayTime >= Type (0) && newDelayTime <= maxDelayTime);
+        
+        for (auto& delayTime : delayTimes)
+            delayTime = newDelayTime;
     }
     
     void setWetLevel (Type newWetLevel)

@@ -26,7 +26,7 @@ SpatiotemporalReverbAudioProcessor::SpatiotemporalReverbAudioProcessor()
                                                       "Gain",
                                                       0.0f,
                                                       1.0f,
-                                                      1.0f));
+                                                      0.5f));
     addParameter(pan = new juce::AudioParameterFloat(juce::ParameterID("pan", 1),
                                                       "Pan",
                                                       -1.0f,
@@ -34,16 +34,11 @@ SpatiotemporalReverbAudioProcessor::SpatiotemporalReverbAudioProcessor()
                                                       0.0f));
     
     // add delay parameters
-    addParameter(delayTimeLeft = new juce::AudioParameterFloat(juce::ParameterID("delayTimeLeft", 1),
-                                                           "Delay Time Left",
-                                                           0.01f,
-                                                           1.99f,
-                                                           0.5f));
-    addParameter(delayTimeRight = new juce::AudioParameterFloat(juce::ParameterID("delayTimeRight", 1),
-                                                           "Delay Time Right",
-                                                           0.01f,
-                                                           1.99f,
-                                                           0.5f));
+    addParameter(feedback = new juce::AudioParameterFloat(juce::ParameterID("feedback", 1),
+                                                          "Feedback",
+                                                          0.0f,
+                                                          0.99f,
+                                                          0.0f));
     
     // add fx parameters
     addParameter(wetLevel = new juce::AudioParameterFloat(juce::ParameterID("wetLevel", 1),
@@ -55,11 +50,6 @@ SpatiotemporalReverbAudioProcessor::SpatiotemporalReverbAudioProcessor()
                                                           "Dry level",
                                                           0.0f,
                                                           1.0f,
-                                                          0.0f));
-    addParameter(feedback = new juce::AudioParameterFloat(juce::ParameterID("feedback", 1),
-                                                          "Feedback",
-                                                          0.0f,
-                                                          0.99f,
                                                           0.0f));
     addParameter(reverbLevel = new juce::AudioParameterFloat(juce::ParameterID("reverbLevel", 1),
                                                              "Reverb Level",
@@ -81,8 +71,9 @@ SpatiotemporalReverbAudioProcessor::SpatiotemporalReverbAudioProcessor()
     
     // we set panSmoother = 0.5 and not 0.0 since JUCE variables are interpreted as values between 0 and 1 in Unity
     panSmoother = 0.5f;
-    gainSmoother = 1.0f;
+    gainSmoother = 0.5f;
     obstructedReflectionsSmoother = 0.0f;
+    delayTimeSmoother = 0.0f;
     
     // TODO: make it so that this function is only called on player movement, not every frame necessarily
     applyAudioPositioning = [&] (float panInfo, float frontBackInfo, float distance, float transmission, float filterCoefLeft, float filterCoefRight)
@@ -96,9 +87,6 @@ SpatiotemporalReverbAudioProcessor::SpatiotemporalReverbAudioProcessor()
         // set the value parameter based on the Unity input
         getParameters()[0]->setValue(gainSmoother);
         getParameters()[1]->setValue(panSmoother);
-        
-        // set diffusion amount
-        processorChain.template get<diffusionIndex>().adjustDiffusionSize(distance / 343.0f);
         
         occlusionFilterLeftCoef -= 0.4f * (occlusionFilterLeftCoef - filterCoefLeft);
         occlusionFilterRightCoef -= 0.4f * (occlusionFilterRightCoef - filterCoefLeft);
@@ -115,7 +103,20 @@ SpatiotemporalReverbAudioProcessor::SpatiotemporalReverbAudioProcessor()
         jassert (0.0f <= obstructedReflections && obstructedReflections <= 1.0f);
         // apply S-curve
         obstructedReflectionsSmoother -= 0.4f * (obstructedReflectionsSmoother - obstructedReflections);
-        getParameters()[9]->setValue(obstructedReflections);
+        getParameters()[7]->setValue(obstructedReflections);
+    };
+    
+    setDiffusionSize = [&] (float diffusionTime)
+    {
+        // set diffusion amount (no S-curve needed since this is done implicitly in the diffusion class)
+        processorChain.template get<diffusionIndex>().adjustDiffusionSize(diffusionTime);
+    };
+    
+    setDelayTime = [&] (float delayTime)
+    {
+        // apply S-curve
+        delayTimeSmoother -= 0.02f * (delayTimeSmoother - delayTime);
+        processorChain.template get<delayIndex>().setDelayTimes(delayTimeSmoother);
     };
 
 }
@@ -277,7 +278,7 @@ void SpatiotemporalReverbAudioProcessor::processBlock (juce::AudioBuffer<float>&
             auto filterSample = filterOnlyContext.getOutputBlock().getSample (ch, sample);
             
             // apply panning and gain control to the processed sample
-            auto outputSample = std::tanh (reverbLevel->get() * reverbSample + directLevel->get() * filterSample) * panValue * gain->get();
+            auto outputSample = std::tanh (reverbSample * reverbLevel->get() + filterSample * directLevel->get()) * panValue * gain->get();
             context.getOutputBlock().setSample(ch, sample, outputSample);
         }
     }
@@ -319,8 +320,6 @@ void SpatiotemporalReverbAudioProcessor::setParameters()
     processorChain.template get<delayIndex>().setFeedback(feedback->get());
     processorChain.template get<delayIndex>().setWetLevel(wetLevel->get());
     processorChain.template get<delayIndex>().setDryLevel(dryLevel->get());
-    processorChain.template get<delayIndex>().setDelayTime(0, delayTimeLeft->get());
-    processorChain.template get<delayIndex>().setDelayTime(1, delayTimeRight->get());
 }
 
 //==============================================================================

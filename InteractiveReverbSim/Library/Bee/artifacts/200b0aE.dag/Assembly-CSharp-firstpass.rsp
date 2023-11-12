@@ -360,7 +360,6 @@
 "Assets/Plugins/InteractiveReverbScripts/RenderDepth.cs"
 "Assets/Plugins/InteractiveReverbScripts/SourceToListenerLink.cs"
 "Assets/Plugins/InteractiveReverbScripts/SphericalRaycast.cs"
-"Assets/Plugins/InteractiveReverbScripts/Visualization.cs"
 -langversion:9.0
 
 /deterministic

@@ -5,7 +5,7 @@ using UnityEngine;
 public class RayCastAudioSource : MonoBehaviour
 {
     public AudioSource audioSource;
-    // public AudioManager audioManager;
+    public AudioManager audioManager;
 
     private SphericalRaycast sphericalRaycast = new SphericalRaycast();
     private float obstructedRays = 0.0f;
@@ -29,11 +29,11 @@ public class RayCastAudioSource : MonoBehaviour
         {
             // TODO: only call on player or soundsource movement
             obstructedRays = sphericalRaycast.CastSphericalRays(transform.position, raycastType);
-            Debug.Log("Obstructed rays: " + obstructedRays);
-            if (AudioManager.SetObstructedReflections(obstructedRays) == 0)
-            {
-                Debug.Log("Error setting the obstructed reflections!");
-            }
+
+            // communicate values to the plugin
+            audioManager.SendObstructionReflections(obstructedRays);
+            audioManager.ApplyDiffusionTime(sphericalRaycast.GetLongestDistance());
+            audioManager.ApplyDelayTime(sphericalRaycast.GetAverageDistance());
         }
         // TODO: fix case in which audio source stopped playing.
         // I assume that this would case the echoes to continue playing, which is not what we want.

@@ -12097,9 +12097,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a35bc03bdcaa948ada8b40664dcf1ce4, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  gBufferTexture: {fileID: 8400000, guid: 67fe5f9a5f0774d58bac838157b43047, type: 2}
-  gBufferCamera: {fileID: 963194227}
-  tracker: {fileID: 963194230}
 --- !u!114 &963194230
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -12115,7 +12112,7 @@ MonoBehaviour:
   soundSource: {fileID: 1720545047}
   marker: {fileID: 609133482}
   tracker: {fileID: 609133484}
-  debug: 1
+  debug: 0
 --- !u!43 &984013633
 Mesh:
   m_ObjectHideFlags: 0
@@ -19147,7 +19144,7 @@ AudioSource:
   m_Enabled: 1
   serializedVersion: 4
   OutputAudioMixerGroup: {fileID: -2394396533933337846, guid: a1e111b8d5cb94922a1cb76e6e9b04d2, type: 2}
-  m_audioClip: {fileID: 8300000, guid: 941c9661ac947487c8d9f89c49eb322a, type: 3}
+  m_audioClip: {fileID: 8300000, guid: dbba9a46973e9493f91fbff7958b4a25, type: 3}
   m_PlayOnAwake: 1
   m_Volume: 1
   m_Pitch: 1
@@ -19280,6 +19277,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   audioSource: {fileID: 1720545046}
+  audioManager: {fileID: 1735930980}
   raycastType: 2
 --- !u!1 &1735930975
 GameObject:
