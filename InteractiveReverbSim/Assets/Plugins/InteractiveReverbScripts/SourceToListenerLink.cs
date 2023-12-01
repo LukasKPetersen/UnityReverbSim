@@ -2,7 +2,7 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
-class SourceToListenerLink : MonoBehaviour
+public class SourceToListenerLink : MonoBehaviour
 {
     public AudioSource audioSource;
     public GameObject listener;
@@ -19,6 +19,8 @@ class SourceToListenerLink : MonoBehaviour
     float transmissionCoefficient = 1.0f;
     float[] filterCoefficient = { 5e3f, 5e3f };
 
+    bool playerMoved = false;
+
     void Start()
     {
         // Initialize the audioSource
@@ -34,51 +36,61 @@ class SourceToListenerLink : MonoBehaviour
         }
     }
 
-    void Update()
+    void LateUpdate()
     {   
         if (boostEffect) factor = 5.0f;
         else factor = 1.0f;
 
-        // Calculate the distance between the source and the listener
-        float distance = Vector3.Distance(transform.position, listener.transform.position);
-
-        // Get all the objects between the source and the listener
-        Vector3 direction = listener.transform.position - transform.position;
-        RaycastHit[] hits = Physics.RaycastAll(transform.position, direction, distance);
-
-        // TODO: only call when player or soundsource moves
-        handleLinkRay(hits);
-        
-        // if the direct line of sight is blocked, shoot analysis rays
-        if (hits.Length > 1) shootAnalysisRays(direction, distance);
-
-        // create a new RaycastResult
-        RaycastResult link = new RaycastResult
+        if (playerMoved)
         {
-            soundReduction = transmissionCoefficient,
-            panInformation = leftRightAngle,
-            frontBackInformation = frontBackAngle,
-            distanceTravelled = distance * factor,
-            filterCoefficients = filterCoefficient
-        };
+            // Calculate the distance between the source and the listener
+            float distance = Vector3.Distance(transform.position, listener.transform.position);
 
-        
-        // Send the link to the audio source
-        if (audioManager != null)
-        {
-            audioManager.ApplyRaycastResult(link);
+            // Get all the objects between the source and the listener
+            Vector3 direction = listener.transform.position - transform.position;
+            RaycastHit[] hits = Physics.RaycastAll(transform.position, direction, distance);
+
+            // TODO: only call when player or soundsource moves
+            handleLinkRay(hits);
+            
+            // if the direct line of sight is blocked, shoot analysis rays
+            if (hits.Length > 1) shootAnalysisRays(direction, distance);
+
+            // create a new RaycastResult
+            RaycastResult link = new RaycastResult
+            {
+                soundReduction = transmissionCoefficient,
+                panInformation = leftRightAngle,
+                frontBackInformation = frontBackAngle,
+                distanceTravelled = distance * factor,
+                filterCoefficients = filterCoefficient
+                };
+
+            
+            // Send the link to the audio source
+            if (audioManager != null)
+            {
+                audioManager.ApplyRaycastResult(link);
+            }
+            else
+            {
+                Debug.Log("AudioManager not selected!");
+            }
+
+            // reset the transmission coefficient
+            transmissionCoefficient = 1.0f;
+
+            // reset the filter coefficients
+            filterCoefficient[0] = 5e3f;
+            filterCoefficient[1] = 5e3f; 
         }
-        else
-        {
-            Debug.Log("AudioManager not selected!");
-        }
 
-        // reset the transmission coefficient
-        transmissionCoefficient = 1.0f;
+        playerMoved = false;
+    }
 
-        // reset the filter coefficients
-        filterCoefficient[0] = 5e3f;
-        filterCoefficient[1] = 5e3f;
+    public void SetPlayerMoved()
+    {
+        playerMoved = true;
     }
 
     void shootAnalysisRays(Vector3 linkDirection, float distance)

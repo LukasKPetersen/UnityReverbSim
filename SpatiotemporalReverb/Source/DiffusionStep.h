@@ -70,6 +70,8 @@ public:
             delayLines[ch].push(input[ch]);
             delayed[ch] = delayLines[ch].get(delayInSamples[ch]);
             
+            // TODO: perhaps implement a shuffle (moving signals between channels, perhaps using a map)
+            
             // invert polarities
             if (invertPolarity[ch]) delayed[ch] *= -1;
         }

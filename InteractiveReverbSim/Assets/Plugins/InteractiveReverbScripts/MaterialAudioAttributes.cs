@@ -12,7 +12,7 @@ class MaterialAudioAttributes : MonoBehaviour
 
     public void Start()
     {
-        absorptionCoefficient = 0.2f;
+        absorptionCoefficient = 0.95f;
         scatteringCoefficient = 0.2f;
         diffractionCoefficient = 0.2f;
         transmissionCoefficient = 0.2f;

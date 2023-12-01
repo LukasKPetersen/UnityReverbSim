@@ -17,12 +17,13 @@ class Delay
 public:
     Delay()
     {
-        setMaxDelayTime (5.0f);
+        setMaxDelayTime (4.0f);
         setDelayTime (0, 0.0f); // set left channel delay
         setDelayTime (1, 0.0f); // set right channel delay
-        setWetLevel (0.8f);
-        setDryLevel (1.0f);
-        setFeedback (0.0f); // I don't think I'll need feedback but it's easier to remove than add...
+        // TODO: wet and dry has become obsolete (I think...)
+        setWetLevel (1.0f);
+        setDryLevel (0.0f);
+        setFeedback (0.0f);
     }
     
     void prepare (const juce::dsp::ProcessSpec& spec)
@@ -57,29 +58,18 @@ public:
             {
                 auto inputSample = inputBlock.getSample (ch, sample);
                                         
-                // get the delayedSignal from the delay line and apply filter
-                auto delayedSample = delayLine.get(delayTimes[ch] * sampleRate);
+                // get the delayedSignal from the delay line
+                auto delayedSample = delayLine.get (delayTimes[ch] * sampleRate);
                 
-                // add diffused echo to delay line
-                delayLine.push(inputSample + feedback * delayedSample);
+                // add diffused sample to delay line
+                delayLine.push (std::tanh (inputSample + feedback * delayedSample));
                 
                 // calculate the output sample and send it to the output signal
-                outputBlock.setSample (ch, sample, dryLevel * inputSample + wetLevel * delayedSample);
+                auto outputSample = std::tanh (dryLevel * inputSample + wetLevel * delayedSample);
+                outputBlock.setSample (ch, sample, outputSample);
             }
         }
     }
-    
-    
-//    void clearEchoes ()
-//    {
-//        for (std::vector<Echo>& echoesVector : echoes)
-//            echoesVector.clear();
-//    }
-//    
-//    void addEcho (float delayTime, float soundReduction, int channel)
-//    {
-//        echoes[channel].push_back(Echo {delayTime, soundReduction});
-//    }
     
     void setMaxDelayTime (Type newMax)
     {
@@ -143,23 +133,11 @@ private:
     std::array<DelayLine<Type>, maxNumChannels> delayLines;
     std::array<Type,            maxNumChannels> delayTimes;
     
-    // we define the data structure that holds each individual echo
-//    struct Echo
-//    {
-//        float delayInSeconds;
-//        float soundReduction;
-//    };
-//    std::array<std::vector<Echo>, maxNumChannels> echoes;
-
-    // filters
-//    std::array<juce::dsp::IIR::Filter<Type>, maxNumChannels> filters;
-//    typename juce::dsp::IIR::Coefficients<Type>::Ptr filterCoefs;
-    
     // helper function
     void updateDelayLineSize()
     {
         // we adjust the size of the circular buffers for each of our delay lines
-        size_t delayLineSamples = (size_t) std::ceil(maxDelayTime * sampleRate);
+        size_t delayLineSamples = (size_t) std::ceil (maxDelayTime * sampleRate);
         for (auto& delayLine : delayLines)
             delayLine.resize (delayLineSamples);
     }

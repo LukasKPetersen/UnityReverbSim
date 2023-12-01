@@ -74,6 +74,7 @@ SpatiotemporalReverbAudioProcessor::SpatiotemporalReverbAudioProcessor()
     gainSmoother = 0.5f;
     obstructedReflectionsSmoother = 0.0f;
     delayTimeSmoother = 0.0f;
+    feedbackSmoother = 0.0f;
     
     // TODO: make it so that this function is only called on player movement, not every frame necessarily
     applyAudioPositioning = [&] (float panInfo, float frontBackInfo, float distance, float transmission, float filterCoefLeft, float filterCoefRight)
@@ -92,10 +93,7 @@ SpatiotemporalReverbAudioProcessor::SpatiotemporalReverbAudioProcessor()
         occlusionFilterRightCoef -= 0.4f * (occlusionFilterRightCoef - filterCoefLeft);
         
         // set filters
-        filter.setHeadShadowFilter(panInfo, frontBackInfo);
-        filter.setDistanceFilter(distance);
-        filter.setOcclusionFilter(occlusionFilterLeftCoef, 0);
-        filter.setOcclusionFilter(occlusionFilterRightCoef, 1);
+        setFilterValues(panInfo, frontBackInfo, distance, occlusionFilterLeftCoef, occlusionFilterRightCoef);
     };
     
     setObstructedReflections = [&] (float obstructedReflections)
@@ -103,20 +101,27 @@ SpatiotemporalReverbAudioProcessor::SpatiotemporalReverbAudioProcessor()
         jassert (0.0f <= obstructedReflections && obstructedReflections <= 1.0f);
         // apply S-curve
         obstructedReflectionsSmoother -= 0.4f * (obstructedReflectionsSmoother - obstructedReflections);
-        getParameters()[7]->setValue(obstructedReflections);
+        getParameters()[7]->setValue (obstructedReflections);
     };
     
     setDiffusionSize = [&] (float diffusionTime)
     {
         // set diffusion amount (no S-curve needed since this is done implicitly in the diffusion class)
-        processorChain.template get<diffusionIndex>().adjustDiffusionSize(diffusionTime);
+        processorChain.template get<diffusionIndex>().adjustDiffusionSize (diffusionTime);
     };
     
     setDelayTime = [&] (float delayTime)
     {
         // apply S-curve
         delayTimeSmoother -= 0.02f * (delayTimeSmoother - delayTime);
-        processorChain.template get<delayIndex>().setDelayTimes(delayTimeSmoother);
+        processorChain.template get<delayIndex>().setDelayTimes (delayTimeSmoother);
+    };
+    
+    setFeedback = [&] (float feedback)
+    {
+        // apply S-curve
+        feedbackSmoother -= 0.02f * (feedbackSmoother - feedback);
+        processorChain.template get<delayIndex>().setFeedback (feedbackSmoother);
     };
 
 }
@@ -238,8 +243,6 @@ void SpatiotemporalReverbAudioProcessor::processBlock (juce::AudioBuffer<float>&
     for (auto i = totalNumInputChannels; i < totalNumOutputChannels; ++i)
         buffer.clear (i, 0, buffer.getNumSamples());
     
-    setParameters();
-    
     // setup the audio block(s) for processing
     juce::AudioBuffer<float> bufferCopy (2, buffer.getNumSamples());
     for (int ch = 0; ch < totalNumInputChannels; ++ch)
@@ -252,11 +255,11 @@ void SpatiotemporalReverbAudioProcessor::processBlock (juce::AudioBuffer<float>&
     /* SIGNAL 1: Dry Signal -> Diffuser -> Delay -> Filter -> Output */
     // we process the dry signal through diffusion and delay
     juce::dsp::ProcessContextReplacing<float> context (block);
-    processorChain.process (context);
-    
-    // we send the wet signal through a filter
-    filter.setWetDryBalance(obstructedReflections->get());
-    filter.process (context);
+    processorChain.template get<filterIndex>().setWetDryBalance(obstructedReflections->get());
+//    processorChain.process (context);
+//    processorChain.template get<diffusionIndex>().process (context);
+    processorChain.template get<delayIndex>().process (context);
+    processorChain.template get<filterIndex>().process (context);
     
     
     /* SIGNAL 2: Dry Signal -> Filter -> Output */
@@ -268,7 +271,7 @@ void SpatiotemporalReverbAudioProcessor::processBlock (juce::AudioBuffer<float>&
     
     for (int ch = 0; ch < totalNumInputChannels; ++ch)
     {
-        // calculate the pan value (channel-wise)
+        // calculate the channel-wise pan value
         float panValue = ch == 0 ?  juce::jmap(pan->get(), -1.0f, 1.0f, -1.0f, 0.0f) * (-1) :
                                     juce::jmap(pan->get(), -1.0f, 1.0f, 0.0f, 1.0f);
         
@@ -278,7 +281,11 @@ void SpatiotemporalReverbAudioProcessor::processBlock (juce::AudioBuffer<float>&
             auto filterSample = filterOnlyContext.getOutputBlock().getSample (ch, sample);
             
             // apply panning and gain control to the processed sample
-            auto outputSample = std::tanh (reverbSample * reverbLevel->get() + filterSample * directLevel->get()) * panValue * gain->get();
+            auto outputSample = std::tanh (
+                                           (reverbLevel->get() * reverbSample + directLevel->get() * filterSample)
+                                           * panValue
+                                           * gain->get()
+                                           );
             context.getOutputBlock().setSample(ch, sample, outputSample);
         }
     }
@@ -310,16 +317,22 @@ void SpatiotemporalReverbAudioProcessor::setStateInformation (const void* data, 
 }
 
 //==============================================================================
-void SpatiotemporalReverbAudioProcessor::setParameters()
-{
-    // set diffusion parameters
-    processorChain.template get<diffusionIndex>().setWetLevel(wetLevel->get());
-    processorChain.template get<diffusionIndex>().setDryLevel(dryLevel->get());
+
+void SpatiotemporalReverbAudioProcessor::setFilterValues(float panInfo, float frontBackInfo, float distance, float occlusionFilterLeftCoef, float occlusionFilterRightCoef) {
     
-    // set delay parameters
-    processorChain.template get<delayIndex>().setFeedback(feedback->get());
-    processorChain.template get<delayIndex>().setWetLevel(wetLevel->get());
-    processorChain.template get<delayIndex>().setDryLevel(dryLevel->get());
+    // the direct filter
+    filter.setHeadShadowFilter(panInfo, frontBackInfo);
+    filter.setDistanceFilter(distance);
+//    filter.setOcclusionFilter(occlusionFilterLeftCoef, 0);
+//    filter.setOcclusionFilter(occlusionFilterRightCoef, 1);
+    filter.setOcclusionFilter(occlusionFilterRightCoef);
+    
+    // the reverb filter
+    processorChain.template get<filterIndex>().setHeadShadowFilter(panInfo, frontBackInfo);
+    processorChain.template get<filterIndex>().setDistanceFilter(distance);
+//    processorChain.template get<filterIndex>().setOcclusionFilter(occlusionFilterLeftCoef, 0);
+//    processorChain.template get<filterIndex>().setOcclusionFilter(occlusionFilterRightCoef, 1);
+    processorChain.template get<filterIndex>().setOcclusionFilter(occlusionFilterRightCoef);
 }
 
 //==============================================================================

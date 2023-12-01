@@ -28,6 +28,9 @@ public class AudioManager : MonoBehaviour
     
     [DllImport("audioplugin_SpatiotemporalReverb", CallingConvention = CallingConvention.Cdecl)]
     public static extern int SetDelayTime (float delayTime);
+    
+    [DllImport("audioplugin_SpatiotemporalReverb", CallingConvention = CallingConvention.Cdecl)]
+    public static extern int SetFeedback (float feedback);
 
     private void Awake()
     {
@@ -68,7 +71,7 @@ public class AudioManager : MonoBehaviour
         }
         // else
         // {
-        //     Debug.Log("Successfully set the obstructed reflections!");
+        //     Debug.Log("Successfully set the obstructed reflections to " + obstructedRays);
         // }
     }
 
@@ -80,7 +83,7 @@ public class AudioManager : MonoBehaviour
         }
         // else
         // {
-        //     Debug.Log("Successfully set the diffusion time!");
+        //     Debug.Log("Successfully set the diffusion time to " + diffusionTime / getSoundSpeed(soundMedium.air));
         // }
     }
 
@@ -92,7 +95,20 @@ public class AudioManager : MonoBehaviour
         }
         // else
         // {
-        //     Debug.Log("Successfully set the delay time!");
+        //     Debug.Log("Successfully set the delay time to " + distance / getSoundSpeed(soundMedium.air));
+        // }
+    }
+
+    public void ApplyFeedback(float absorption)
+    {
+        float feedback = 1 - absorption;
+        if (SetFeedback(feedback) == 0)
+        {
+            Debug.Log("Error applying feedback!");
+        }
+        // else
+        // {
+        //     Debug.Log("Successfully set the feedback to " + feedback);
         // }
     }
 

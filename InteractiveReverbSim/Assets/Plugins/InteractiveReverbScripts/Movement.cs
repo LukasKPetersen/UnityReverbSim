@@ -6,6 +6,9 @@ using UnityEngine;
 
 public class Movement : MonoBehaviour
 {
+    public SourceToListenerLink sourceToListenerLink;
+    public RayCastAudioSource rayCastAudioSource;
+
     [SerializeField] Transform playerCamera;
     [SerializeField][Range(0.0f, 0.5f)] float mouseSmoothTime = 0.03f;
     [SerializeField] bool cursorLock = true;
@@ -42,15 +45,23 @@ public class Movement : MonoBehaviour
 
     void Update()
     {
-        UpdateMouse();
-        UpdateMove();
+        if (UpdateMouse() + UpdateMove() > 0)
+        {
+            sourceToListenerLink.SetPlayerMoved();
+            rayCastAudioSource.SetPlayerMoved();
+        }
     }
 
-    void UpdateMouse()
+    int UpdateMouse()
     {
         Vector2 targetMouseDelta = new Vector2(Input.GetAxis("Mouse X"), Input.GetAxis("Mouse Y"));
 
-        currentMouseDelta = Vector2.SmoothDamp(currentMouseDelta, targetMouseDelta, ref currentMouseDeltaVelocity, mouseSmoothTime);
+        Vector2 newMouseDelta = Vector2.SmoothDamp(currentMouseDelta, targetMouseDelta, ref currentMouseDeltaVelocity, mouseSmoothTime);
+
+        if (newMouseDelta != currentMouseDelta)
+            currentMouseDelta = newMouseDelta;
+        else
+            return 0; // return 0 if no mouse movement
 
         cameraCap -= currentMouseDelta.y * mouseSensitivity;
 
@@ -59,9 +70,11 @@ public class Movement : MonoBehaviour
         playerCamera.localEulerAngles = Vector3.right * cameraCap;
 
         transform.Rotate(Vector3.up * currentMouseDelta.x * mouseSensitivity);
+
+        return 1;
     }
 
-    void UpdateMove()
+    int UpdateMove()
     {
         isGrounded = Physics.CheckSphere(groundCheck.position, 0.2f, ground);
 
@@ -69,6 +82,11 @@ public class Movement : MonoBehaviour
         targetDir.Normalize();
 
         currentDir = Vector2.SmoothDamp(currentDir, targetDir, ref currentDirVelocity, moveSmoothTime);
+
+        if (currentDir == Vector2.zero && isGrounded)
+        {
+            return 0; // return 0 if no movement
+        }
 
         velocityY += gravity * 2f * Time.deltaTime;
 
@@ -85,5 +103,7 @@ public class Movement : MonoBehaviour
         {
             velocityY = -8f;
         }
+
+        return 1;
     }
 }

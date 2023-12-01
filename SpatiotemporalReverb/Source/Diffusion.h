@@ -16,8 +16,9 @@ class Diffusion
 public:
     Diffusion()
     {
-        setWetLevel (0.8f);
-        setDryLevel (1.0f);
+        // TODO: contol these variables properly
+        setWetLevel (1.0f);
+        setDryLevel (0.0f);
     }
     
     template <typename ProcessContext>

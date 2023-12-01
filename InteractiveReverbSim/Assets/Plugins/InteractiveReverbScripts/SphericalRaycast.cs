@@ -101,4 +101,11 @@ public class SphericalRaycast
         rayHandler.ResetAverageDistance();
         return result;
     }
+
+    public float GetAverageAbsorption()
+    {
+        float result = rayHandler.GetAverageAbsorption();
+        rayHandler.ResetAverageAbsorption();
+        return result;
+    }
 }

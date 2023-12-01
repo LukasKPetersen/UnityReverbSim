@@ -10,6 +10,8 @@ public class DiffusionRayHandler
     private float longestDistance = 0.0f;
     private int numListenerHits = 0;
     private float averageDistance = 0.0f;
+    private float averageAbsorption = 0.8f;
+    private int numAbsorbedRays = 0;
 
     // we return 1 if the ray was obstructed and zero if the ray had direct contact with the listener
     public int CastRay(Vector3 origin, Vector3 direction, float distanceTravelled, int numReflections)
@@ -91,6 +93,11 @@ public class DiffusionRayHandler
             // if the ray was not obstructed, we return 0
             return 0;
         }
+        else if (hit.collider != null && hit.collider.gameObject.GetComponent<MaterialAudioAttributes>() != null)
+        {
+            averageAbsorption += hit.collider.gameObject.GetComponent<MaterialAudioAttributes>().absorptionCoefficient;
+            numAbsorbedRays++;
+        }
         // ray was obstructed
         return 1;
     }
@@ -125,5 +132,19 @@ public class DiffusionRayHandler
     {
         averageDistance = 0.0f;
         numListenerHits = 0;
+    }
+
+    public float GetAverageAbsorption()
+    {
+        if (numAbsorbedRays == 0)
+            return averageAbsorption;
+        else
+            return averageAbsorption / numAbsorbedRays;
+    }
+
+    public void ResetAverageAbsorption()
+    {
+        averageAbsorption = 0.0f;
+        numAbsorbedRays = 0;
     }
 }

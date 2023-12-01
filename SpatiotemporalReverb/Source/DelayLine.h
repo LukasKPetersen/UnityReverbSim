@@ -80,6 +80,7 @@ public:
         jassert (numSamples > 0);
         rawData.resize (numSamples);
         writeIndex = 0;
+        clear();
     }
 
 private:

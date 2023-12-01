@@ -64,7 +64,7 @@ public:
     void setStateInformation (const void* data, int sizeInBytes) override;
     
     //==============================================================================
-    void setParameters();
+    void setFilterValues(float panInfo, float frontBackInfo, float distance, float occlusionFilterLeftCoef, float occlusionFilterRightCoef);
 
 private:
     // localization parameters
@@ -84,8 +84,9 @@ private:
     juce::AudioParameterFloat* obstructedReflections;
     
     // S-curve parameters
-    float panSmoother;
     float gainSmoother;
+    float panSmoother;
+    float feedbackSmoother;
     float obstructedReflectionsSmoother;
     float delayTimeSmoother;
     float occlusionFilterLeftCoef { 5e3 };
@@ -98,7 +99,7 @@ private:
         delayIndex,
         filterIndex
     };
-    juce::dsp::ProcessorChain<Diffusion<float, 8, 8>, Delay<float>> processorChain;
+    juce::dsp::ProcessorChain<Diffusion<float, 16, 8>, Delay<float>, Filter<float, 2>> processorChain;
     Filter<float, 2> filter;
     
     //==============================================================================
