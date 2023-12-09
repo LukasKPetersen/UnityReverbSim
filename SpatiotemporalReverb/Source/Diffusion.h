@@ -4,21 +4,19 @@
 //
 //  Created by Lukas Petersen on 18/10/2023.
 //
+//  Based on ADC 21' talk: Let's Write a Reverb - Geraint Luff
+
 
 #pragma once
 #include <JuceHeader.h>
 #include "DiffusionStep.h"
 
-// based on ADC 21' talk: Let's Write a Reverb - Geraint Luff
 template<typename Type, size_t numDiffusionChannels = 8, size_t numDiffusionSteps = 8>
 class Diffusion
 {
 public:
     Diffusion()
     {
-        // TODO: contol these variables properly
-        setWetLevel (1.0f);
-        setDryLevel (0.0f);
     }
     
     template <typename ProcessContext>
@@ -38,19 +36,15 @@ public:
                 
                 // split the input signal into the diffusion channels
                 std::array<Type, numDiffusionChannels> splitSignal;
-                splitSignal.fill(inputSample);
+                splitSignal.fill (inputSample);
                 
                 // add the diffusion
-                for (size_t step = 0; step < numDiffusionSteps; ++step)
-                {
-                    if (activeDiffusionSteps[step])
-                        splitSignal = diffusionSteps[step].process (splitSignal);
-                    else
-                        break;
-                }
+                for (size_t step = 0; step <= activeDiffusionSteps; ++step)
+                    diffusionSteps[step].process (splitSignal.data());
     
                 // combine the split signal to a single channel and send it to the output signal
-                outputBlock.setSample (ch, sample, std::tanh (std::accumulate (std::begin(splitSignal), std::end(splitSignal), 0.0f)));
+                auto outputSample = (std::accumulate (std::begin(splitSignal), std::end(splitSignal), 0.0f)) / numDiffusionChannels;
+                outputBlock.setSample (ch, sample, outputSample);
             }
         }
     }
@@ -58,58 +52,36 @@ public:
     void prepare (const juce::dsp::ProcessSpec& spec)
     {
         sampleRate = spec.sampleRate;
-        int samplesPerStep = (int)(diffusionStepAtomicSize * sampleRate);
+        
+        // make sure that the diffusion step size is proportional to the sample rate
+        jassert (diffusionStepAtomicSize * sampleRate > 1);
+        
+        size_t samplesPerStep = (size_t)(diffusionStepAtomicSize * sampleRate);
         
         for (auto& step : diffusionSteps)
         {
             step.prepare (samplesPerStep);
-            samplesPerStep *= 2;
+            samplesPerStep *= 2; // for every step we double the diffusion length
         }
+    }
+    
+    void setDiffusionStep (float diffusionTime)
+    {
+        // apply S-curve to make sure we don't jump multiple steps at once
+        diffusionTimeSmoother -= 0.02 * (diffusionTimeSmoother - diffusionTime);
         
-        // as a default, we only activate the first diffusion step
-        activeDiffusionSteps.fill (false);
-        activeDiffusionSteps[0] = true;
-    }
-    
-    void adjustDiffusionSize (Type diffusionTime)
-    {
-        jassert (diffusionTime >= Type (0.0f));
-                
-        // activate or deactivate diffusion steps, depending on the distance to the listener
-        // we always have the first diffusion step activated
-        for (int step = 1; step < numDiffusionSteps; ++step)
-        {
-            activeDiffusionSteps[step] = (diffusionTime > diffusionStepAtomicSize * step) ? true : false;
-        }
-    }
-    
-    void setDiffusionStepAtomicSize (Type newSize)
-    {
-        jassert (newSize > Type (0.0f));
-        diffusionStepAtomicSize = newSize;
-    }
-    
-    void setWetLevel (Type newWetLevel)
-    {
-        // ensure that the input value is valid, i.e. in range [0, 1]
-        jassert (newWetLevel >= Type (0) && newWetLevel <= Type (1));
-        wetLevel = newWetLevel;
-    }
-    
-    void setDryLevel (Type newDryLevel)
-    {
-        // ensure that the input value is valid, i.e. in range [0, 1]
-        jassert (newDryLevel >= Type (0) && newDryLevel <= Type (1));
-        dryLevel = newDryLevel;
+        // calculate the amount of diffusion steps needed
+        int step = 0;
+        while (diffusionTimeSmoother > diffusionStepAtomicSize * (2 << step) && step <= numDiffusionSteps) step++;
+        activeDiffusionSteps = step;
     }
     
 private:
     Type sampleRate { Type (44.1e3) };
-    Type wetLevel;
-    Type dryLevel;
-    Type diffusionStepAtomicSize { Type (0.048f) };
+    Type diffusionStepAtomicSize { Type (0.012f) };
     
-    std::array<bool, numDiffusionSteps> activeDiffusionSteps;
+    size_t activeDiffusionSteps { 0 };
+    Type diffusionTimeSmoother { Type (0.24f) };
     
     // we declare an array of diffusion steps that functions as a diffusion chain
     std::array<DiffusionStep<Type, numDiffusionChannels>, numDiffusionSteps> diffusionSteps;

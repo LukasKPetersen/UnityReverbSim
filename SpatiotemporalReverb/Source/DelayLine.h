@@ -22,7 +22,6 @@ public:
         return rawData.size();
     }
     
-    // TODO: Deprecated - delete asap
     void push (Type valueToAdd) noexcept
     {
         rawData[writeIndex] = valueToAdd;
@@ -31,7 +30,6 @@ public:
         writeIndex = writeIndex == 0 ? getSize() - 1 : writeIndex - 1;
     }
     
-    // TODO: Deprecated - delete asap
     Type get (size_t delayInSamples) const noexcept
     {
         // make sure that delayInSamples is within the bounds

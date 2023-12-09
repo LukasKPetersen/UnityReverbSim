@@ -50,17 +50,13 @@ public class AudioManager : MonoBehaviour
 
         if (ApplyAudioPositioning  (panInfoJUCE, 
                                     raycastResult.frontBackInformation, 
-                                    raycastResult.distanceTravelled, 
+                                    raycastResult.distanceTravelled / 4.0f, // we added a reduction factor for adjustment based on gut-feeling
                                     raycastResult.soundReduction,
                                     raycastResult.filterCoefficients[left],
                                     raycastResult.filterCoefficients[right]) == 0) 
         { 
             Debug.Log("Error applying audio positioning!"); 
         }
-        // else 
-        // { 
-        //     Debug.Log("Successfully applied audio positioning!"); 
-        // }
     }
 
     public void SendObstructionReflections(float obstructedRays)
@@ -69,21 +65,17 @@ public class AudioManager : MonoBehaviour
         {
             Debug.Log("Error setting the obstructed reflections!");
         }
-        // else
-        // {
-        //     Debug.Log("Successfully set the obstructed reflections to " + obstructedRays);
-        // }
     }
 
-    public void ApplyDiffusionTime(float diffusionTime)
+    public void ApplyDiffusionTime(float distance)
     {
-        if (SetDiffusionSize(diffusionTime / getSoundSpeed(soundMedium.air)) == 0)
+        if (SetDiffusionSize(distance * 4.0f / getSoundSpeed(soundMedium.air)) == 0) // here we added a factor 4.0 for audible effect
         {
             Debug.Log("Error applying diffusion time!");
         }
         // else
         // {
-        //     Debug.Log("Successfully set the diffusion time to " + diffusionTime / getSoundSpeed(soundMedium.air));
+        //     Debug.Log("Diffusion time: " + distance * 4.0f / getSoundSpeed(soundMedium.air));
         // }
     }
 
@@ -93,10 +85,6 @@ public class AudioManager : MonoBehaviour
         {
             Debug.Log("Error applying delay time!");
         }
-        // else
-        // {
-        //     Debug.Log("Successfully set the delay time to " + distance / getSoundSpeed(soundMedium.air));
-        // }
     }
 
     public void ApplyFeedback(float absorption)
@@ -106,10 +94,6 @@ public class AudioManager : MonoBehaviour
         {
             Debug.Log("Error applying feedback!");
         }
-        // else
-        // {
-        //     Debug.Log("Successfully set the feedback to " + feedback);
-        // }
     }
 
     public void TestConnectionToJuce() 

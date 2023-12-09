@@ -17,7 +17,7 @@ public class SourceToListenerLink : MonoBehaviour
     float leftRightAngle = 90.0f;
     float frontBackAngle = 0.0f;
     float transmissionCoefficient = 1.0f;
-    float[] filterCoefficient = { 5e3f, 5e3f };
+    float[] filterCoefficient = { 10e3f, 10e3f };
 
     bool playerMoved = false;
 
@@ -81,8 +81,8 @@ public class SourceToListenerLink : MonoBehaviour
             transmissionCoefficient = 1.0f;
 
             // reset the filter coefficients
-            filterCoefficient[0] = 5e3f;
-            filterCoefficient[1] = 5e3f; 
+            filterCoefficient[0] = 10e3f;
+            filterCoefficient[1] = 10e3f; 
         }
 
         playerMoved = false;

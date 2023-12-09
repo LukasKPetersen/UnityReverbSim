@@ -69,6 +69,10 @@ SpatiotemporalReverbAudioProcessor::SpatiotemporalReverbAudioProcessor()
                                                                        1.0f,
                                                                        0.0f));
     
+    // set up the high pass for the reverb signal processing
+    processorChain.template get<highPassIndex>().setType (juce::dsp::StateVariableTPTFilterType::highpass);
+    processorChain.template get<highPassIndex>().setCutoffFrequency (3e2f);
+    
     // we set panSmoother = 0.5 and not 0.0 since JUCE variables are interpreted as values between 0 and 1 in Unity
     panSmoother = 0.5f;
     gainSmoother = 0.5f;
@@ -76,14 +80,13 @@ SpatiotemporalReverbAudioProcessor::SpatiotemporalReverbAudioProcessor()
     delayTimeSmoother = 0.0f;
     feedbackSmoother = 0.0f;
     
-    // TODO: make it so that this function is only called on player movement, not every frame necessarily
     applyAudioPositioning = [&] (float panInfo, float frontBackInfo, float distance, float transmission, float filterCoefLeft, float filterCoefRight)
     {
         jassert(distance != 0.0f);
         
         // instead of taking the direct value from Unity we apply smoothening to avoid audio artifacts (an S-curve)
         gainSmoother -= 0.02f * (gainSmoother - transmission / distance); // amplitude is inversely proportional to distance
-        panSmoother -= 0.01f * (panSmoother - panInfo);
+        panSmoother -= 0.04f * (panSmoother - panInfo);
         
         // set the value parameter based on the Unity input
         getParameters()[0]->setValue(gainSmoother);
@@ -93,7 +96,9 @@ SpatiotemporalReverbAudioProcessor::SpatiotemporalReverbAudioProcessor()
         occlusionFilterRightCoef -= 0.4f * (occlusionFilterRightCoef - filterCoefLeft);
         
         // set filters
-        setFilterValues(panInfo, frontBackInfo, distance, occlusionFilterLeftCoef, occlusionFilterRightCoef);
+        // NOTE: we only use one coefficient for the occlusion filter for now.
+        // A possible improvement is to implement stereo occlusion filters
+        setFilterValues(panInfo, frontBackInfo, distance, occlusionFilterLeftCoef);
     };
     
     setObstructedReflections = [&] (float obstructedReflections)
@@ -106,8 +111,7 @@ SpatiotemporalReverbAudioProcessor::SpatiotemporalReverbAudioProcessor()
     
     setDiffusionSize = [&] (float diffusionTime)
     {
-        // set diffusion amount (no S-curve needed since this is done implicitly in the diffusion class)
-        processorChain.template get<diffusionIndex>().adjustDiffusionSize (diffusionTime);
+        processorChain.template get<diffusionIndex>().setDiffusionStep (diffusionTime);
     };
     
     setDelayTime = [&] (float delayTime)
@@ -252,14 +256,11 @@ void SpatiotemporalReverbAudioProcessor::processBlock (juce::AudioBuffer<float>&
     juce::dsp::AudioBlock<float> filterOnlyBlock (bufferCopy);
     
     
-    /* SIGNAL 1: Dry Signal -> Diffuser -> Delay -> Filter -> Output */
+    /* SIGNAL 1: Dry Signal -> Highpass Filter -> Diffuser -> Delay -> Filter -> Output */
     // we process the dry signal through diffusion and delay
     juce::dsp::ProcessContextReplacing<float> context (block);
     processorChain.template get<filterIndex>().setWetDryBalance(obstructedReflections->get());
-//    processorChain.process (context);
-//    processorChain.template get<diffusionIndex>().process (context);
-    processorChain.template get<delayIndex>().process (context);
-    processorChain.template get<filterIndex>().process (context);
+    processorChain.process (context);
     
     
     /* SIGNAL 2: Dry Signal -> Filter -> Output */
@@ -281,11 +282,7 @@ void SpatiotemporalReverbAudioProcessor::processBlock (juce::AudioBuffer<float>&
             auto filterSample = filterOnlyContext.getOutputBlock().getSample (ch, sample);
             
             // apply panning and gain control to the processed sample
-            auto outputSample = std::tanh (
-                                           (reverbLevel->get() * reverbSample + directLevel->get() * filterSample)
-                                           * panValue
-                                           * gain->get()
-                                           );
+            auto outputSample = std::tanh (reverbLevel->get() * reverbSample + directLevel->get() * filterSample) * panValue * gain->get();
             context.getOutputBlock().setSample(ch, sample, outputSample);
         }
     }
@@ -318,21 +315,17 @@ void SpatiotemporalReverbAudioProcessor::setStateInformation (const void* data, 
 
 //==============================================================================
 
-void SpatiotemporalReverbAudioProcessor::setFilterValues(float panInfo, float frontBackInfo, float distance, float occlusionFilterLeftCoef, float occlusionFilterRightCoef) {
+void SpatiotemporalReverbAudioProcessor::setFilterValues(float panInfo, float frontBackInfo, float distance, float occlusionFilterCoef) {
     
     // the direct filter
     filter.setHeadShadowFilter(panInfo, frontBackInfo);
     filter.setDistanceFilter(distance);
-//    filter.setOcclusionFilter(occlusionFilterLeftCoef, 0);
-//    filter.setOcclusionFilter(occlusionFilterRightCoef, 1);
-    filter.setOcclusionFilter(occlusionFilterRightCoef);
+    filter.setOcclusionFilter(occlusionFilterCoef);
     
     // the reverb filter
     processorChain.template get<filterIndex>().setHeadShadowFilter(panInfo, frontBackInfo);
     processorChain.template get<filterIndex>().setDistanceFilter(distance);
-//    processorChain.template get<filterIndex>().setOcclusionFilter(occlusionFilterLeftCoef, 0);
-//    processorChain.template get<filterIndex>().setOcclusionFilter(occlusionFilterRightCoef, 1);
-    processorChain.template get<filterIndex>().setOcclusionFilter(occlusionFilterRightCoef);
+    processorChain.template get<filterIndex>().setOcclusionFilter(occlusionFilterCoef);
 }
 
 //==============================================================================

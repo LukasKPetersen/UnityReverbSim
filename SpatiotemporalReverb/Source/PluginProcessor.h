@@ -64,7 +64,7 @@ public:
     void setStateInformation (const void* data, int sizeInBytes) override;
     
     //==============================================================================
-    void setFilterValues(float panInfo, float frontBackInfo, float distance, float occlusionFilterLeftCoef, float occlusionFilterRightCoef);
+    void setFilterValues(float panInfo, float frontBackInfo, float distance, float occlusionFilterCoef);
 
 private:
     // localization parameters
@@ -92,14 +92,19 @@ private:
     float occlusionFilterLeftCoef { 5e3 };
     float occlusionFilterRightCoef { 5e3 };
     
+    // indicator of the amount of diffusion currently active
+    int diffusionStepsActive { 0 };
+    
     // processor chain
     enum
     {
+        highPassIndex,
         diffusionIndex,
         delayIndex,
         filterIndex
     };
-    juce::dsp::ProcessorChain<Diffusion<float, 16, 8>, Delay<float>, Filter<float, 2>> processorChain;
+        
+    juce::dsp::ProcessorChain<juce::dsp::StateVariableTPTFilter<float>, Diffusion<float, 8, 8>, Delay<float>, Filter<float, 2>> processorChain;
     Filter<float, 2> filter;
     
     //==============================================================================
