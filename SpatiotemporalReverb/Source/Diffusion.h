@@ -19,6 +19,22 @@ public:
     {
     }
     
+    void prepare (const juce::dsp::ProcessSpec& spec)
+    {
+        sampleRate = spec.sampleRate;
+        
+        // make sure that the diffusion step size is proportional to the sample rate
+        jassert (diffusionStepAtomicSize * sampleRate > 1);
+        
+        size_t samplesPerStep = (size_t)(diffusionStepAtomicSize * sampleRate);
+        
+        for (auto& step : diffusionSteps)
+        {
+            step.prepare (samplesPerStep);
+            samplesPerStep *= 2; // for every step we double the diffusion length
+        }
+    }
+    
     template <typename ProcessContext>
     void process (const ProcessContext& context)
     {
@@ -49,23 +65,7 @@ public:
         }
     }
     
-    void prepare (const juce::dsp::ProcessSpec& spec)
-    {
-        sampleRate = spec.sampleRate;
-        
-        // make sure that the diffusion step size is proportional to the sample rate
-        jassert (diffusionStepAtomicSize * sampleRate > 1);
-        
-        size_t samplesPerStep = (size_t)(diffusionStepAtomicSize * sampleRate);
-        
-        for (auto& step : diffusionSteps)
-        {
-            step.prepare (samplesPerStep);
-            samplesPerStep *= 2; // for every step we double the diffusion length
-        }
-    }
-    
-    void setDiffusionStep (float diffusionTime)
+    void setDiffusionSteps (float diffusionTime)
     {
         // apply S-curve to make sure we don't jump multiple steps at once
         diffusionTimeSmoother -= 0.02 * (diffusionTimeSmoother - diffusionTime);

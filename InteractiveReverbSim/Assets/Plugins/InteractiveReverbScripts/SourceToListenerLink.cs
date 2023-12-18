@@ -127,7 +127,7 @@ public class SourceToListenerLink : MonoBehaviour
                 }
 
                 // visualize the ray
-                if (visualize) Debug.DrawLine(transform.position, hit.point, new Color(0, 1, 1, 0.7f), 0.02f, true);
+                if (visualize) Debug.DrawLine(transform.position, hit.point, new Color(1, 1, 0.5f, 0.7f), 0.02f, true);
             }
             else
             {
@@ -144,7 +144,7 @@ public class SourceToListenerLink : MonoBehaviour
                 }
 
                 // visualize the ray
-                if (visualize) Debug.DrawRay(transform.position, direction, new Color(0, 1, 0, 0.5f), 0.02f, true);
+                if (visualize) Debug.DrawRay(transform.position, direction*distance, new Color(0, 1, 0, 0.7f), 0.02f, true);
             }
         }
     }

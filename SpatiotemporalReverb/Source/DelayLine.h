@@ -83,6 +83,6 @@ public:
 
 private:
     std::vector<Type> rawData;
-    size_t writeIndex = 0; // TODO: Deprecated - delete asap
-    size_t readIndex = 0;
+    size_t writeIndex = 0;
+    size_t readIndex = 0; // TODO: Deprecated
 };

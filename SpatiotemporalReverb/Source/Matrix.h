@@ -9,6 +9,7 @@
 
 #pragma once
 #include <JuceHeader.h>
+#include <cmath>
 
 /* NOTE: size must be a power of 2 */
 template<typename Type, size_t size>
@@ -37,7 +38,9 @@ public:
     static void process(Type* input) {
         recursiveMatrixProduct(input);
         
-        Type factor = std::sqrt (1.0 / size);
+        // the true Hadamard transform factor would be: 1.0f / std::pow(2, size/2);
+        // However, this leaves the signal inaudible so instead we use:
+        Type factor = std::sqrt (1.0f / size);
         
         // looping through each row of the input, corresponding to the diffusion-step channels
         for (int i = 0; i < size; ++i)

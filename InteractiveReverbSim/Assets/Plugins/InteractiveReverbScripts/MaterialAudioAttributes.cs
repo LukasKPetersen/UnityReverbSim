@@ -4,11 +4,11 @@ using UnityEngine;
 
 class MaterialAudioAttributes : MonoBehaviour
 {
-    public float absorptionCoefficient;
-    public float scatteringCoefficient;
-    public float diffractionCoefficient;
-    public float transmissionCoefficient;
-    public float filterCoefficient;
+    public float absorptionCoefficient = 0.95f;
+    public float scatteringCoefficient = 0.2f;
+    public float diffractionCoefficient = 0.2f;
+    public float transmissionCoefficient = 0.2f;
+    public float filterCoefficient = 0.2f;
 
     public void Start()
     {

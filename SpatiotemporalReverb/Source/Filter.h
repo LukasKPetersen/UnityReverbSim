@@ -40,9 +40,7 @@ public:
     void setDistanceFilter (float distance)
     {
         float factor = 10.0f; // for audible effect
-        float freqCutoff = 10e3f - distance * factor;
-        for (size_t ch = 0; ch < maxNumChannels; ++ch)
-            
+        float freqCutoff = 10e3f - distance * factor;            
         filterChain.template get<distanceFilter>().setCutoffFrequency (freqCutoff);
     }
     

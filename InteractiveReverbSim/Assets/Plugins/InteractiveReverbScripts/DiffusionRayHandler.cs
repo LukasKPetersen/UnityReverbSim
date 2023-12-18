@@ -9,8 +9,8 @@ public class DiffusionRayHandler
     private float maxRayRange = 40.0f;
     private float longestDistance = 0.0f;
     private int numListenerHits = 0;
-    private float averageDistance = 0.0f;
-    private float averageAbsorption = 0.8f;
+    private float totalDistance = 0.0f;
+    private float totalAbsorption = 0.8f;
     private int numAbsorbedRays = 0;
 
     // we return 1 if the ray was obstructed and zero if the ray had direct contact with the listener
@@ -32,10 +32,10 @@ public class DiffusionRayHandler
                 // if the ray didn't hit the listener, trace the path from the surface to the listener
                 if (numReflections < 1)
                 {
-                    if (visualize) Debug.DrawLine(origin, hit.point, new Color(1, 0, 0, 0.2f), 0.1f, true);
+                    if (visualize) Debug.DrawLine(origin, hit.point, new Color(1, 1, 1, 0.2f), 0.1f, true);
                     return ReflectRay(hit, distanceTravelled + hit.distance, numReflections);
                 }
-                else 
+                else
                 {
                     if (visualize) Debug.DrawLine(origin, hit.point, new Color(1, 0, 0, 0.2f), 0.1f, true);
                     return 1; // ray was obstructed
@@ -45,7 +45,7 @@ public class DiffusionRayHandler
             {
                 // if the ray hit the listener, we don't need to trace the path from the surface to the listener
                 numListenerHits++;
-                averageDistance += hit.distance;
+                totalDistance += hit.distance;
                 if (visualize) Debug.DrawLine(origin, hit.point, new Color(0, 0, 1, 0.2f), 0.1f, true);
                 return 0;
             }
@@ -62,40 +62,11 @@ public class DiffusionRayHandler
     {
         if (hit.collider != null && hit.collider.gameObject == GameObject.Find("Listener"))
         {
-            /*Vector3 impactPoint = hit.point;
-
-            // calculate the front-back angle
-            Vector3 referenceDirection = GameObject.Find("Listener").transform.forward;
-            float frontBackAngle = Vector3.Angle(impactPoint - GameObject.Find("Listener").transform.position, referenceDirection);
-
-            // calculate the left-right angle
-            Vector3 leftRightDirection = GameObject.Find("Listener").transform.right;
-            float leftRightAngle = Vector3.Angle(impactPoint - GameObject.Find("Listener").transform.position, leftRightDirection);
-
-            // create a new RaycastResult
-            RaycastResult result = new RaycastResult
-            {
-                panInformation = leftRightAngle,
-                frontBackInformation = frontBackAngle,
-                distanceTravelled = distanceTravelled
-            };
-
-            // alternative method: send each raycast result as soon as it is calculated
-            if (audioManager != null)
-            {
-                audioManager.ApplyRaycastResult(result);
-            }
-            else
-            {
-                Debug.Log("AudioManager not selected!");
-            }*/
-
-            // if the ray was not obstructed, we return 0
             return 0;
         }
         else if (hit.collider != null && hit.collider.gameObject.GetComponent<MaterialAudioAttributes>() != null)
         {
-            averageAbsorption += hit.collider.gameObject.GetComponent<MaterialAudioAttributes>().absorptionCoefficient;
+            totalAbsorption += hit.collider.gameObject.GetComponent<MaterialAudioAttributes>().absorptionCoefficient;
             numAbsorbedRays++;
         }
         // ray was obstructed
@@ -125,26 +96,26 @@ public class DiffusionRayHandler
         if (numListenerHits == 0) 
             return 0.0f;
         else 
-            return averageDistance / numListenerHits;
+            return totalDistance / numListenerHits;
     }
 
     public void ResetAverageDistance()
     {
-        averageDistance = 0.0f;
+        totalDistance = 0.0f;
         numListenerHits = 0;
     }
 
     public float GetAverageAbsorption()
     {
         if (numAbsorbedRays == 0)
-            return averageAbsorption;
+            return totalAbsorption;
         else
-            return averageAbsorption / numAbsorbedRays;
+            return totalAbsorption / numAbsorbedRays;
     }
 
     public void ResetAverageAbsorption()
     {
-        averageAbsorption = 0.0f;
+        totalAbsorption = 0.0f;
         numAbsorbedRays = 0;
     }
 }
