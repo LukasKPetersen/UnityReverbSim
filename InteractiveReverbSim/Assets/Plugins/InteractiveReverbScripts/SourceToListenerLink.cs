@@ -144,7 +144,7 @@ public class SourceToListenerLink : MonoBehaviour
                 }
 
                 // visualize the ray
-                if (visualize) Debug.DrawRay(transform.position, direction*distance, new Color(0, 1, 0, 0.7f), 0.02f, true);
+                if (visualize) Debug.DrawRay(transform.position, Vector3.Normalize(direction)*distance, new Color(0, 1, 0, 0.7f), 0.02f, true);
             }
         }
     }
