@@ -1,3 +1,5 @@
+// This script is based on a script by BLOXYDEV: https://pastebin.com/dcZVj1cB
+
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
